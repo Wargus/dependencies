@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
@@ -44,5 +45,9 @@ set_target_properties(toluapp PROPERTIES
 set_target_properties(toluapp51 PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(toluapp51_shared PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(toluapp PROPERTIES LINKER_LANGUAGE CXX)
+
+add_dependencies(toluapp51_shared lua51 lua51_shared lua51_static)
+add_dependencies(toluapp51 lua51 lua51_shared lua51_static)
+add_dependencies(toluapp lua51 lua51_shared lua51_static)
 
 include_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
