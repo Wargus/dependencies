@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # quick script to update all dependencies
+# 3-tuple of git repo, ref, and patterns of unneeded files to remove to save space
+# if a patch file exists with the same name as the repo, it is applied on update
 
 REPOS=(
     "https://github.com/libsdl-org/SDL.git" "release-2.0.22" "test"
@@ -31,6 +33,9 @@ for i in `seq 0 3 ${#REPOS[@]}`; do
             cd "$dir"
             rm -rf $del_pattern
             cd ..
+        fi
+        if [ -e "${dir}.patch" ]; then
+            patch -p1 < "${dir}.patch"
         fi
         git add "$dir"
         git commit -m "Inline $repo at $ref"

@@ -1,13 +1,9 @@
-include(ExternalProject)
-
-function(vendored_macros_list_dir)
-  set(CMAKE_CURRENT_MACRO_LIST_DIR "${CMAKE_CURRENT_FUNCTION_LIST_DIR}" PARENT_SCOPE)
-endfunction()
+set(CMAKE_CURRENT_MACRO_LIST_DIR "${CMAKE_CURRENT_LIST_DIR}" PARENT_SCOPE)
 
 macro(vendored_lua)
-  if(not USE_VENDORED_LUA)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_LUA)
     set(USE_VENDORED_LUA true)
-    vendored_macros_list_dir()
 
     ExternalProject_Add(lua
       SOURCE_DIR ${CMAKE_CURRENT_MACRO_LIST_DIR}/lua-5.1.5/
@@ -36,9 +32,9 @@ macro(vendored_lua)
 endmacro()
 
 macro(vendored_zlib)
-  if(not USE_VENDORED_ZLIB)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_ZLIB)
     set(USE_VENDORED_ZLIB true)
-    vendored_macros_list_dir()
 
     file(GLOB ZLIB_HEADERS "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_image/external/zlib/*.h")
     # zconf.h is generated into output dir, don't copy it from the source.
@@ -64,10 +60,10 @@ macro(vendored_zlib)
 endmacro()
 
 macro(vendored_png)
+  include(ExternalProject)
   vendored_zlib()
-  if(not USE_VENDORED_PNG)
+  if(NOT DEFINED USE_VENDORED_PNG)
     set(USE_VENDORED_PNG true)
-    vendored_macros_list_dir()
 
     file(GLOB PNG_HEADERS "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_image/external/libpng/*.h")
 
@@ -92,14 +88,14 @@ macro(vendored_png)
 endmacro()
 
 macro(vendored_bzip2)
-  if(not USE_VENDORED_BZIP2)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_BZIP2)
     set(USE_VENDORED_BZIP2 true)
-    vendored_macros_list_dir()
 
     ExternalProject_Add(bzip2
       SOURCE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/bzip2"
       PREFIX "${CMAKE_CURRENT_BINARY_DIR}/bzip2/"
-      CMAKE_CACHE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+      CMAKE_CACHE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_STATIC_LIBS:BOOL=ON
       INSTALL_COMMAND ""
     )
 
@@ -114,9 +110,9 @@ macro(vendored_bzip2)
 endmacro()
 
 macro(vendored_ogg)
-  if(not USE_VENDORED_OGG)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_OGG)
     set(USE_VENDORED_OGG true)
-    vendored_macros_list_dir()
 
     file(GLOB OGG_HEADERS "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_mixer/external/ogg/include/ogg/*.h")
     ExternalProject_Add(ogg
@@ -138,9 +134,9 @@ macro(vendored_ogg)
 endmacro()
 
 macro(vendored_vorbis)
-  if(not USE_VENDORED_VORBIS)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_VORBIS)
     set(USE_VENDORED_VORBIS true)
-    vendored_macros_list_dir()
     vendored_ogg()
 
     ExternalProject_Add(vorbis
@@ -169,9 +165,9 @@ macro(vendored_vorbis)
 endmacro()
 
 macro(vendored_oggvorbis)
-  if(not USE_VENDORED_OGGVORBIS)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_OGGVORBIS)
     set(USE_VENDORED_OGGVORBIS true)
-    vendored_macros_list_dir()
     vendored_ogg()
     vendored_vorbis()
 
@@ -182,9 +178,9 @@ macro(vendored_oggvorbis)
 endmacro()
 
 macro(vendored_jpeg)
-  if(not USE_VENDORED_JPEG)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_JPEG)
     set(USE_VENDORED_JPEG true)
-    vendored_macros_list_dir()
 
     file(GLOB JPEG_HEADERS "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_image/external/jpeg/*.h")
 
@@ -207,14 +203,14 @@ macro(vendored_jpeg)
 endmacro()
 
 macro(vendored_lcms)
-  if(not USE_VENDORED_LCMS)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_LCMS)
     set(USE_VENDORED_LCMS true)
-    vendored_macros_list_dir()
 
     ExternalProject_Add(lcms
       SOURCE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/lcms"
       PREFIX "${CMAKE_CURRENT_BINARY_DIR}/lcms/"
-      CMAKE_CACHE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+      CMAKE_CACHE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_STATIC_LIBS:BOOL=ON
       INSTALL_COMMAND ""
     )
 
@@ -229,9 +225,9 @@ macro(vendored_lcms)
 endmacro()
 
 macro(vendored_mng)
-  if(not USE_VENDORED_MNG)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_MNG)
     set(USE_VENDORED_MNG true)
-    vendored_macros_list_dir()
     vendored_zlib()
     vendored_jpeg()
     vendored_lcms()
@@ -244,6 +240,7 @@ macro(vendored_mng)
       -DJPEG_FOUND:STRING=1 -DJPEG_INCLUDE_DIR:PATH=${JPEG_INCLUDE_DIR} -DJPEG_LIBRARY:FILEPATH=${JPEG_LIBRARIES}
       -DLCMS_FOUND:STRING=1 -DLCMS_INCLUDE_DIR:PATH=${LCMS_INCLUDE_DIR} -DLCMS_LIBRARY:FILEPATH=${LCMS_LIBRARIES}
       -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+      -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_STATIC_LIBS:BOOL=ON
     )
 
     add_dependencies(mng zlib jpeg lcms)
@@ -257,12 +254,12 @@ macro(vendored_mng)
       set(MNG_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/mng/src/mng-build/libmng.a" ${ZLIB_LIBRARIES} ${LCMS_LIBRARIES})
     endif()
   endif()
-endif()
+endmacro()
 
 macro(vendored_theora)
-  if(not USE_VENDORED_THEORA)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_THEORA)
     set(USE_VENDORED_THEORA true)
-    vendored_macros_list_dir()
     vendored_ogg()
     vendored_vorbis()
 
@@ -291,9 +288,9 @@ macro(vendored_theora)
 endmacro()
 
 macro(vendored_sdl)
-  if(not USE_VENDORED_SDL)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_SDL)
     set(USE_VENDORED_SDL true)
-    vendored_macros_list_dir()
 
     file(GLOB SDL_HEADERS "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL/include/*.h")
     if (MSVC)
@@ -319,9 +316,9 @@ macro(vendored_sdl)
 endmacro()
 
 macro(vendored_sdl_image)
-  if(not USE_VENDORED_SDL_IMAGE)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_SDL_IMAGE)
     set(USE_VENDORED_SDL_IMAGE)
-    vendored_macros_list_dir()
     vendored_sdl()
     vendored_jpeg()
     vendored_png()
@@ -357,9 +354,9 @@ macro(vendored_sdl_image)
 endmacro()
 
 macro(vendored_sdl_mixer)
-  if(not USE_VENDORED_SDL_MIXER)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_SDL_MIXER)
     set(USE_VENDORED_SDL_MIXER true)
-    vendored_macros_list_dir()
     vendored_sdl()
 
     ExternalProject_Add(SDL2_mixer
@@ -390,9 +387,9 @@ macro(vendored_sdl_mixer)
 endmacro()
 
 macro(vendored_unsf)
-  if(not USE_VENDORED_UNSF)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_UNSF)
     set(USE_VENDORED_UNSF true)
-    vendored_macros_list_dir()
 
     ExternalProject_Add(unsf
       SOURCE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/unsf"
@@ -404,9 +401,9 @@ macro(vendored_unsf)
 endmacro()
 
 macro(vendored_freepats)
-  if(not USE_VENDORED_FREEPATS)
+  include(ExternalProject)
+  if(NOT DEFINED USE_VENDORED_FREEPATS)
     set(USE_VENDORED_FREEPATS true)
-    vendored_macros_list_dir()
 
     ExternalProject_Add(freepats
       DOWNLOAD_DIR "${CMAKE_CURRENT_BINARY_DIR}/freepats-download"
