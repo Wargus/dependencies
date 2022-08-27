@@ -1,0 +1,13 @@
+prefix=@UNSFLIB_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/@UNSFLIB_LIBDIR@
+includedir=${exec_prefix}/include
+
+Name: UnSF
+Description: UnSF converts soundfonts into gus patch files
+Version: @UNSF_VERSION@
+URL: https://www.mindwerks.net/projects/unsf/
+
+Libs: -L${libdir} -lunsf
+Libs.private: -lm
+Cflags: -I${includedir}
