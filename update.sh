@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# quick script to update all dependencies
+
+REPOS=(
+    "https://github.com/libsdl-org/SDL.git" "release-2.0.22" "test"
+    "https://github.com/libsdl-org/SDL_image.git" "release-2.6.1" "external/libjxl external/dav1d external/libtiff external/libwebp external/libavif"
+    "https://github.com/libsdl-org/SDL_mixer.git" "release-2.6.1" "external/flac external/mpg123 exernal/opus"
+    "https://github.com/xiph/theora.git" "v1.1.1" ""
+    "https://github.com/LuaDist/bzip2.git" "1.0.5" "manual.ps manual.pdf"
+    "https://github.com/LuaDist/lcms.git" "1.19" "python "
+    "https://github.com/LuaDist/libmng.git" "1.0.10" ""
+    "https://github.com/psi29a/unsf.git" "c5e5a8c" ""
+)
+
+for i in `seq 0 3 ${#REPOS[@]}`; do
+    repo=${REPOS[$i]}
+    ref=${REPOS[$((i+1))]}
+    del_pattern=${REPOS[$((i+2))]}
+    dir=${repo%.git}
+    dir=${dir##*/}
+
+    if [ -n "$repo" ]; then
+        echo "Cloning $repo at $ref to $dir"
+        set -xe
+        git rm -rf "$dir" || rm -rf "$dir" || true
+        git clone --depth 1 --branch "$ref" --single-branch "$repo" "$dir" || ( git clone "$repo" "$dir" && git -C "$dir" checkout "$ref" )
+        git -C "$dir" submodule update --init --recursive --depth 1
+        rm -rf "${dir}/.git"
+        if [ -n "$del_pattern" ]; then
+            cd "$dir"
+            rm -rf $del_pattern
+            cd ..
+        fi
+        git add "$dir"
+        git commit -m "Inline $repo at $ref"
+        set +xe
+    fi
+done
