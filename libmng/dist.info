@@ -1,0 +1,14 @@
+--- This file is part of LuaDist project
+
+name = "libmng"
+version = "1.0.10"
+
+desc = "The MNG reference library"
+author = "Gerard Juyn"
+license = "Custom, see LICENSE"
+url = "http://www.libmng.com/"
+maintainer = "Peter Kapec"
+
+depends = {
+	"lcms >= 1.19"
+}
