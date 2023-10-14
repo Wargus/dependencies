@@ -13,6 +13,7 @@ REPOS=(
     "https://github.com/LuaDist/lcms.git" "1.19" "python "
     "https://github.com/LuaDist/libmng.git" "1.0.10" ""
     "https://github.com/psi29a/unsf.git" "c5e5a8c" ""
+    "https://github.com/doctest/doctest.git" "v2.4.11" ""
 )
 
 for i in `seq 0 3 ${#REPOS[@]}`; do
