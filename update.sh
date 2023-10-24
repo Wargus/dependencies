@@ -15,6 +15,7 @@ REPOS=(
     "https://github.com/psi29a/unsf.git" "c5e5a8c" ""
     "https://github.com/doctest/doctest.git" "v2.4.11" ""
     "https://github.com/mjansson/mdns" "1.1" ""
+    "https://github.com/oo13/spiritless_po" "e2d9835d061c6f660bcd8afb90ea5b8b981ba4a5" ""
 )
 
 for i in `seq 0 3 ${#REPOS[@]}`; do
