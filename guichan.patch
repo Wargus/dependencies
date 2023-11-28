@@ -1,0 +1,2059 @@
+diff --git a/guichan/include/guichan/basiccontainer.hpp b/guichan/include/guichan/basiccontainer.hpp
+index af3e764..72545cf 100644
+--- a/guichan/include/guichan/basiccontainer.hpp
++++ b/guichan/include/guichan/basiccontainer.hpp
+@@ -112,6 +112,19 @@ namespace gcn
+          * @param widget the destroyed Widget.
+          */
+         virtual void _announceDeath(Widget *widget) = 0;
++
++        /**
++         * Function to check if a widget regards this container as parent. This
++         * avoids using function calls so it can work with garbage collected widgets
++         * from Lua.
++         * 
++         * @param widget 
++         * @return true if the parent pointer of the widget points to this container
++         * @return false if the parent pointer of the widget points to something else
++         */
++        bool isParentOfWidget(Widget *widget) {
++            return widget->mParent == this;
++        }
+     
+     };  
+ }
+diff --git a/guichan/include/guichan/focushandler.hpp b/guichan/include/guichan/focushandler.hpp
+index fd65b6b..165494b 100644
+--- a/guichan/include/guichan/focushandler.hpp
++++ b/guichan/include/guichan/focushandler.hpp
+@@ -218,6 +218,11 @@ namespace gcn
+          */
+         virtual void dragNone();
+         
++		/**
++		 * Check if a hot key was pressed.
++		 */
++		virtual void checkHotKey(const KeyInput &keyInput);
++
+     protected:
+         typedef std::vector<Widget*> WidgetVector;
+         typedef WidgetVector::iterator WidgetIterator;
+diff --git a/guichan/include/guichan/gui.hpp b/guichan/include/guichan/gui.hpp
+index 2818d2b..f9c0cb0 100644
+--- a/guichan/include/guichan/gui.hpp
++++ b/guichan/include/guichan/gui.hpp
+@@ -178,6 +178,8 @@ namespace gcn
+          */
+         virtual bool isTabbingEnabled();
+             
++        virtual void setUseDirtyDrawing(bool useDirtyDrawing);
++
+     protected:
+         bool mTopHasMouse;
+         bool mTabbing;
+@@ -186,6 +188,7 @@ namespace gcn
+         Graphics* mGraphics;
+         Input* mInput;
+         FocusHandler* mFocusHandler;    
++        bool mUseDirtyDrawing;
+     };  
+ }
+ 
+diff --git a/guichan/include/guichan/image.hpp b/guichan/include/guichan/image.hpp
+index fdce833..e71c3ad 100644
+--- a/guichan/include/guichan/image.hpp
++++ b/guichan/include/guichan/image.hpp
+@@ -124,6 +124,8 @@ namespace gcn
+          */
+         virtual void* _getData() const;
+ 
++        virtual bool isDirty() const { return false; };
++
+         /**
+          * Gets the ImageLoader used for loading Images.
+          *
+diff --git a/guichan/include/guichan/keylistener.hpp b/guichan/include/guichan/keylistener.hpp
+index 679117e..ae2305e 100644
+--- a/guichan/include/guichan/keylistener.hpp
++++ b/guichan/include/guichan/keylistener.hpp
+@@ -87,14 +87,17 @@ namespace gcn
+          *
+          * @param key the key pressed.
+          */
+-        virtual void keyPress(const Key& key) { }
++        virtual bool keyPress(const Key& key) { return false; }
+ 
+         /**
+          * Called if a key is released when the widget has keyboard focus.
+          *
+          * @param key the key released.
+          */
+-        virtual void keyRelease(const Key& key) { }
++        virtual bool keyRelease(const Key& key) { return false; }
++
++        virtual void hotKeyPress(const Key&) { }
++        virtual void hotKeyRelease(const Key&) { }
+ 
+     protected:
+         /**
+diff --git a/guichan/include/guichan/listmodel.hpp b/guichan/include/guichan/listmodel.hpp
+index d2f9627..5f7dedb 100644
+--- a/guichan/include/guichan/listmodel.hpp
++++ b/guichan/include/guichan/listmodel.hpp
+@@ -85,6 +85,8 @@ namespace gcn
+          * @return an element as a string.
+          */
+         virtual std::string getElementAt(int i) = 0;
++
++        virtual ~ListModel() {}
+     };
+ }
+ 
+diff --git a/guichan/include/guichan/platform.hpp b/guichan/include/guichan/platform.hpp
+index cb74825..c673160 100644
+--- a/guichan/include/guichan/platform.hpp
++++ b/guichan/include/guichan/platform.hpp
+@@ -55,25 +55,6 @@
+ #ifndef GCN_PLATFORM_HPP
+ #define GCN_PLATFORM_HPP
+ 
+-#if defined (__MINGW32__) && defined(GUICHAN_BUILD)
+-#define GCN_CORE_DECLSPEC __declspec(dllexport)
+-
+-#elif defined (__MINGW32__) && defined(GUICHAN_EXTENSION_BUILD)
+-#define GCN_EXTENSION_DECLSPEC __declspec(dllexport)
+-#define GCN_CORE_DECLSPEC __declspec(dllimport)
+-
+-#elif defined (__MINGW32__)
+-#define GCN_CORE_DECLSPEC __declspec(dllimport)
+-#define GCN_EXTENSION_DECLSPEC __declspec(dllimport)
+-
+-#elif defined(_MSC_VER) && defined(GUICHAN_BUILD)
+-#define GCN_CORE_DECLSPEC _declspec(dllexport)
+-
+-#elif defined(_MSC_VER) && defined(GUICHAN_EXTENSION_BUILD)
+-#define GCN_CORE_DECLSPEC _declspec(dllimport)
+-#define GCN_EXTENSION_DECLSPEC _declspec(dllexport)
+-#endif
+-
+ #ifndef GCN_CORE_DECLSPEC
+ #define GCN_CORE_DECLSPEC
+ #endif
+diff --git a/guichan/include/guichan/sdl/sdlinput.hpp b/guichan/include/guichan/sdl/sdlinput.hpp
+index b3973e0..3ae3a08 100644
+--- a/guichan/include/guichan/sdl/sdlinput.hpp
++++ b/guichan/include/guichan/sdl/sdlinput.hpp
+@@ -105,6 +105,16 @@ namespace gcn
+ 
+         virtual MouseInput dequeueMouseInput();
+ 
++        virtual void processKeyRepeat();
++
++        /**
++         * Converts an SDL keysym to a Key object.
++         *
++         * @param key an SDL keysym
++         * @return a Key object.
++         */
++        static Key convertKeyCharacter(SDL_Keysym key);
++
+     protected:
+         /**
+          * Converts a mouse button from SDL to a Guichan mouse button
+@@ -115,19 +125,13 @@ namespace gcn
+          */
+         int convertMouseButton(int button);
+ 
+-        /**
+-         * Converts an SDL keysym to a Key object.
+-         *
+-         * @param ley an SDL keysym
+-         * @return a Key object.
+-         */
+-        Key convertKeyCharacter(SDL_keysym key);
+-
+         std::queue<KeyInput> mKeyInputQueue;
+         std::queue<MouseInput> mMouseInputQueue;
+ 
+         bool mMouseDown;
+         bool mMouseInWindow;
++        Key mLastKey;
++        bool mIsRepeating;
+     };  
+ }
+ 
+diff --git a/guichan/include/guichan/sdl/sdlpixel.hpp b/guichan/include/guichan/sdl/sdlpixel.hpp
+index c90fb42..db341ea 100644
+--- a/guichan/include/guichan/sdl/sdlpixel.hpp
++++ b/guichan/include/guichan/sdl/sdlpixel.hpp
+@@ -165,6 +165,24 @@ namespace gcn
+         SDL_UnlockSurface(surface);
+     }
+ 
++    /**
++     * Blends two 16 bit colors together.
++     *
++     * @param src the source color.
++     * @param dst the destination color.
++     * @param a alpha.
++     */
++    inline unsigned int SDLAlpha16(unsigned int src, unsigned int dst, unsigned char a)
++    {
++		// Loses precision for speed
++		a = (255 - a) >> 3;
++
++		src = (((src << 16) | src) & 0x07E0F81F);
++		dst = ((dst << 16) | dst) & 0x07E0F81F;
++		dst = ((((dst - src) * a) >> 5) + src) & 0x07E0F81F;
++		return (dst >> 16) | dst;
++    }
++
+     /**
+      * Blends two 32 bit colors together.
+      *
+@@ -205,7 +223,7 @@ namespace gcn
+               break;
+         
+           case 2:
+-              *(Uint16 *)p = pixel;
++              *(Uint16 *)p = SDLAlpha16(pixel, *(Uint16 *)p, color.a);
+               break;
+         
+           case 3:
+diff --git a/guichan/include/guichan/widget.hpp b/guichan/include/guichan/widget.hpp
+index 852b80c..026a6b8 100644
+--- a/guichan/include/guichan/widget.hpp
++++ b/guichan/include/guichan/widget.hpp
+@@ -92,6 +92,7 @@ namespace gcn
+      */
+     class GCN_CORE_DECLSPEC Widget
+     {
++        friend class BasicContainer;
+     public:
+         /**
+          * Constructor. Resets member variables. Noteable, a widget is not
+@@ -287,12 +288,12 @@ namespace gcn
+         /**
+          * Called if the Widget looses focus.
+          */
+-        virtual void lostFocus() { };
++        virtual void lostFocus() { setDirty(true); };
+     
+         /**
+          * Called if the Widget recieves focus.       
+          */
+-        virtual void gotFocus() { };
++        virtual void gotFocus() { setDirty(true); };
+     
+         /**
+          * Checks if the Widget has the mouse.
+@@ -358,6 +359,20 @@ namespace gcn
+          */
+         virtual const Color& getBackgroundColor() const;    
+             
++        /**
++         * Sets the disabled color.
++         *
++         * @param color the disabled Color.
++         */
++        virtual void setDisabledColor(const Color& color);
++
++        /**
++         * Gets the disabled color.
++         *
++         * @return the disabled Color.
++         */
++        virtual const Color& getDisabledColor() const;
++
+         /**
+          * Called when a Widget recieves a MouseInput.
+          *
+@@ -378,7 +393,17 @@ namespace gcn
+          *
+          * @param keyInput the KeyInput message.
+          */
+-        virtual void _keyInputMessage(const KeyInput& keyInput);
++        virtual bool _keyInputMessage(const KeyInput& keyInput);
++
++        /**
++         * Called when a Widget's hot key is pressed
++         */
++        virtual void hotKeyPress() {}
++
++        /**
++         * Called when a Widget's hot key is released
++         */
++        virtual void hotKeyRelease() {}
+ 
+         /**
+          * Called when the mouse enters the Widget area.
+@@ -552,6 +577,16 @@ namespace gcn
+          */
+         virtual void fontChanged() { }
+ 
++        /**
++         * Get the hot key
++         */
++        virtual int getHotKey() const { return mHotKey; }
++
++        /**
++         * Set the hot key
++         */
++        virtual void setHotKey(const int key);
++
+         /**
+          * Checks whether a Widget exists or not, that is if it still exists
+          * an instance of the object.
+@@ -629,7 +664,9 @@ namespace gcn
+          */
+         virtual bool hasModalFocus() const;
+ 
+-        
++        virtual void setDirty(bool dirty);
++        virtual bool getDirty() const;
++
+     protected:
+         /**
+          * Generates an action to the Widget's ActionListeners.
+@@ -651,6 +688,7 @@ namespace gcn
+         Color mForegroundColor;
+         Color mBackgroundColor;
+         Color mBaseColor;
++        Color mDisabledColor;
+         FocusHandler* mFocusHandler;
+         BasicContainer* mParent;
+         Rectangle mDimension;
+@@ -667,9 +705,11 @@ namespace gcn
+         bool mEnabled;
+         
+         Font* mCurrentFont;
++        int mHotKey;
+         static DefaultFont mDefaultFont;
+         static Font* mGlobalFont;
+         static std::list<Widget*> mWidgets;
++        bool mDirty;
+     };  
+ }
+ 
+diff --git a/guichan/include/guichan/widgets/button.hpp b/guichan/include/guichan/widgets/button.hpp
+index abd88d1..8459226 100644
+--- a/guichan/include/guichan/widgets/button.hpp
++++ b/guichan/include/guichan/widgets/button.hpp
+@@ -137,6 +137,8 @@ namespace gcn
+             
+         virtual void lostFocus();
+         
++        virtual void hotKeyPress();
++        virtual void hotKeyRelease();
+ 
+         // Inherited from MouseListener
+         
+@@ -149,13 +151,13 @@ namespace gcn
+ 
+         // Inherited from KeyListener
+ 
+-        virtual void keyPress(const Key& key);
++        virtual bool keyPress(const Key& key);
+     
+-        virtual void keyRelease(const Key& key);
++        virtual bool keyRelease(const Key& key);
+     
+     protected:
+         std::string mCaption;
+-        bool mMouseDown, mKeyDown;
++        bool mMouseDown, mKeyDown, mHotKeyDown;
+         unsigned int mAlignment;        
+     };  
+ }
+diff --git a/guichan/include/guichan/widgets/checkbox.hpp b/guichan/include/guichan/widgets/checkbox.hpp
+index 91bf36f..b03dd0c 100644
+--- a/guichan/include/guichan/widgets/checkbox.hpp
++++ b/guichan/include/guichan/widgets/checkbox.hpp
+@@ -142,7 +142,7 @@ namespace gcn
+ 
+         // Inherited from KeyListener
+ 
+-        virtual void keyPress(const Key& key);
++        virtual bool keyPress(const Key& key);
+ 
+ 
+         // Inherited from MouseListener
+diff --git a/guichan/include/guichan/widgets/container.hpp b/guichan/include/guichan/widgets/container.hpp
+index 63184ec..e668350 100644
+--- a/guichan/include/guichan/widgets/container.hpp
++++ b/guichan/include/guichan/widgets/container.hpp
+@@ -167,6 +167,8 @@ namespace gcn
+ 
+         virtual void getDrawSize(int& width, int& height, Widget* widget);
+ 
++        virtual void setDirty(bool dirty);
++        virtual bool getDirty() const;
+         
+     protected:
+ 
+@@ -188,6 +190,7 @@ namespace gcn
+         Widget* mWidgetWithMouse;
+         typedef std::list<Widget*> WidgetList;
+         typedef WidgetList::iterator WidgetIterator;
++        typedef WidgetList::const_iterator WidgetConstIterator;
+         WidgetList mWidgets;
+         bool mOpaque;    
+     };  
+diff --git a/guichan/include/guichan/widgets/dropdown.hpp b/guichan/include/guichan/widgets/dropdown.hpp
+index bd761da..8c59d8c 100644
+--- a/guichan/include/guichan/widgets/dropdown.hpp
++++ b/guichan/include/guichan/widgets/dropdown.hpp
+@@ -180,7 +180,7 @@ namespace gcn
+ 
+         virtual void drawBorder(Graphics* graphics);
+         
+-        virtual void _keyInputMessage(const KeyInput& keyInput);
++        virtual bool _keyInputMessage(const KeyInput& keyInput);
+         
+         virtual void logic();
+         
+@@ -213,7 +213,7 @@ namespace gcn
+ 
+         // Inherited from KeyListener
+         
+-        virtual void keyPress(const Key& key);
++        virtual bool keyPress(const Key& key);
+ 
+ 
+         // Inherited from MouseListener
+@@ -222,6 +222,9 @@ namespace gcn
+     
+         virtual void mouseRelease(int x, int y, int button);    
+ 
++        virtual void setFont(Font *font);
++
++        virtual bool getDirty() const;
+         
+     protected:
+         /**
+diff --git a/guichan/include/guichan/widgets/icon.hpp b/guichan/include/guichan/widgets/icon.hpp
+index 0f489d1..4cb071d 100644
+--- a/guichan/include/guichan/widgets/icon.hpp
++++ b/guichan/include/guichan/widgets/icon.hpp
+@@ -81,8 +81,14 @@ namespace gcn
+ 
+         virtual void drawBorder(Graphics* graphics);
+         
++        virtual bool getDirty() const;
++
++        // only affects the alpha value
++        virtual void setBaseColor(const Color& color);
++
+     private:
+         Image* mImage;        
++        Color mColor;
+     };    
+ }
+ 
+diff --git a/guichan/include/guichan/widgets/listbox.hpp b/guichan/include/guichan/widgets/listbox.hpp
+index e7264bf..c1b9392 100644
+--- a/guichan/include/guichan/widgets/listbox.hpp
++++ b/guichan/include/guichan/widgets/listbox.hpp
+@@ -137,7 +137,7 @@ namespace gcn
+ 
+         // Inherited from KeyListener
+ 
+-        virtual void keyPress(const Key& key);
++        virtual bool keyPress(const Key& key);
+ 
+ 
+         // Inherited from MouseListener
+diff --git a/guichan/include/guichan/widgets/radiobutton.hpp b/guichan/include/guichan/widgets/radiobutton.hpp
+index 2b4542c..18d27b3 100644
+--- a/guichan/include/guichan/widgets/radiobutton.hpp
++++ b/guichan/include/guichan/widgets/radiobutton.hpp
+@@ -161,7 +161,7 @@ namespace gcn
+ 
+         // Inherited from KeyListener
+ 
+-        virtual void keyPress(const Key& key);
++        virtual bool keyPress(const Key& key);
+ 
+ 
+         // Inherited from MouseListener
+diff --git a/guichan/include/guichan/widgets/slider.hpp b/guichan/include/guichan/widgets/slider.hpp
+index 5d335c9..f444941 100644
+--- a/guichan/include/guichan/widgets/slider.hpp
++++ b/guichan/include/guichan/widgets/slider.hpp
+@@ -214,7 +214,7 @@ namespace gcn
+ 
+         // Inherited from KeyListener
+ 
+-        virtual void keyPress(const Key& key);
++        virtual bool keyPress(const Key& key);
+ 
+         /**
+          * Draw orientations for the slider. It can be drawn verticaly or
+diff --git a/guichan/include/guichan/widgets/textbox.hpp b/guichan/include/guichan/widgets/textbox.hpp
+index 2c68ba1..af007e3 100644
+--- a/guichan/include/guichan/widgets/textbox.hpp
++++ b/guichan/include/guichan/widgets/textbox.hpp
+@@ -225,7 +225,7 @@ namespace gcn
+ 
+         // Inherited from KeyListener
+ 
+-        virtual void keyPress(const Key& key);
++        virtual bool keyPress(const Key& key);
+ 
+         
+         // Inherited from MouseListener
+diff --git a/guichan/include/guichan/widgets/textfield.hpp b/guichan/include/guichan/widgets/textfield.hpp
+index 2c19d4b..b16c55a 100644
+--- a/guichan/include/guichan/widgets/textfield.hpp
++++ b/guichan/include/guichan/widgets/textfield.hpp
+@@ -149,10 +149,11 @@ namespace gcn
+         
+         virtual void mousePress(int x, int y, int button);
+ 
++        virtual void mouseMotion(int x, int y);
+ 
+         // Inherited from KeyListener
+         
+-        virtual void keyPress(const Key& key);   
++        virtual bool keyPress(const Key& key);
+         
+     protected:
+         /**
+diff --git a/guichan/include/guichan/widgets/window.hpp b/guichan/include/guichan/widgets/window.hpp
+index 1084831..6970f3c 100644
+--- a/guichan/include/guichan/widgets/window.hpp
++++ b/guichan/include/guichan/widgets/window.hpp
+@@ -242,6 +242,9 @@ namespace gcn
+ 
+         virtual void mouseMotion(int x, int y);
+     
++        virtual void setDirty(bool dirty);
++        virtual bool getDirty() const;
++
+     protected:
+         /**
+          * Moves the content to the top left corner of the window,
+diff --git a/guichan/src/focushandler.cpp b/guichan/src/focushandler.cpp
+index bac22e1..c50b495 100644
+--- a/guichan/src/focushandler.cpp
++++ b/guichan/src/focushandler.cpp
+@@ -56,6 +56,8 @@
+  * For comments regarding functions please see the header file. 
+  */
+ 
++#include <ctype.h>  // for isascii
++
+ #include "guichan/focushandler.hpp"
+ #include "guichan/exception.hpp"
+ 
+@@ -250,6 +252,10 @@ namespace gcn
+     
+     void FocusHandler::remove(Widget* widget)
+     {
++        if (widget == mDraggedWidget)
++        {
++            mDraggedWidget = NULL;
++        }
+         if (widget == mToBeFocused)
+         {
+             mToBeFocused = NULL;
+@@ -284,8 +290,9 @@ namespace gcn
+     {
+         if (mFocusedWidget != NULL)
+         {
++            Widget* focused = mFocusedWidget;
+             mFocusedWidget = NULL;
+-            mFocusedWidget->lostFocus();
++            focused->lostFocus();
+         }
+         
+         mToBeFocused = NULL;
+@@ -295,7 +302,39 @@ namespace gcn
+     {
+         mDraggedWidget = NULL;
+     }
+-    
++
++    void FocusHandler::checkHotKey(const KeyInput &keyInput)
++    {
++        int keyin = keyInput.getKey().getValue();
++
++        for (int i = 0; i < (int)mWidgets.size(); ++i)
++        {
++            int hotKey = mWidgets[i]->getHotKey();
++
++            if (hotKey == 0)
++            {
++                continue;
++            }
++
++            if ((isascii(keyin) && tolower(keyin) == hotKey) || keyin == hotKey)
++            {
++                if (keyInput.getType() == KeyInput::PRESS)
++                {
++                    mWidgets[i]->hotKeyPress();
++                    if (mWidgets[i]->isFocusable())
++                    {
++                        this->requestFocus(mWidgets[i]);
++                    }
++                }
++                else
++                {
++                    mWidgets[i]->hotKeyRelease();
++                }
++                break;
++            }
++        }
++    }
++
+     void FocusHandler::tabNext()
+     {
+         if (mFocusedWidget != NULL)
+diff --git a/guichan/src/gui.cpp b/guichan/src/gui.cpp
+index 16cafc1..b8be86f 100644
+--- a/guichan/src/gui.cpp
++++ b/guichan/src/gui.cpp
+@@ -71,6 +71,7 @@ namespace gcn
+         mFocusHandler = new FocusHandler();
+         mTopHasMouse = false;
+         mTabbing = true;
++		mUseDirtyDrawing = true;
+     }
+ 
+     Gui::~Gui()
+@@ -92,6 +93,7 @@ namespace gcn
+         if (top)
+         {
+             top->_setFocusHandler(mFocusHandler);
++            top->setDirty(true);
+         }
+     
+         mTop = top;
+@@ -210,18 +212,25 @@ namespace gcn
+                 }
+                 else
+                 {
++                    bool keyProcessed = false;
++
+                     // Send key inputs to the focused widgets
+                     if (mFocusHandler->getFocused())                        
+                     {
+                         if (mFocusHandler->getFocused()->isFocusable())
+                         {
+-                            mFocusHandler->getFocused()->_keyInputMessage(ki);
++                            keyProcessed = mFocusHandler->getFocused()->_keyInputMessage(ki);
+                         }
+                         else
+                         {
+                             mFocusHandler->focusNone();
+                         }
+                     }
++
++                    if (!keyProcessed)
++                    {
++                        mFocusHandler->checkHotKey(ki);
++                    }
+                 }
+                 
+                 mFocusHandler->applyChanges();
+@@ -244,28 +253,31 @@ namespace gcn
+             throw GCN_EXCEPTION("No graphics set");
+         }
+ 
+-        mGraphics->_beginDraw();
+-
+-        // If top has a border,
+-        // draw it before drawing top
+-        if (mTop->getBorderSize() > 0)
++        if (!mUseDirtyDrawing || mTop->getDirty())
+         {
+-            Rectangle rec = mTop->getDimension();
+-            rec.x -= mTop->getBorderSize();
+-            rec.y -= mTop->getBorderSize();
+-            rec.width += 2 * mTop->getBorderSize();
+-            rec.height += 2 * mTop->getBorderSize();                    
+-            mGraphics->pushClipArea(rec);
+-            mTop->drawBorder(mGraphics);
+-            mGraphics->popClipArea();
+-        }
++            mGraphics->_beginDraw();
+ 
+-        mGraphics->pushClipArea(mTop->getDimension());    
+-        mTop->draw(mGraphics);
+-        mGraphics->popClipArea();
++            // If top has a border,
++            // draw it before drawing top
++            if (mTop->getBorderSize() > 0)
++            {
++                Rectangle rec = mTop->getDimension();
++                rec.x -= mTop->getBorderSize();
++                rec.y -= mTop->getBorderSize();
++                rec.width += 2 * mTop->getBorderSize();
++                rec.height += 2 * mTop->getBorderSize();
++                mGraphics->pushClipArea(rec);
++                mTop->drawBorder(mGraphics);
++                mGraphics->popClipArea();
++            }
+ 
++            mGraphics->pushClipArea(mTop->getDimension());
++            mTop->draw(mGraphics);
++            mTop->setDirty(false);
++            mGraphics->popClipArea();
+ 
+-        mGraphics->_endDraw();    
++            mGraphics->_endDraw();    
++        }
+     }
+ 
+     void Gui::focusNone()
+@@ -282,4 +294,9 @@ namespace gcn
+     {
+         return mTabbing;
+     }    
++
++	void Gui::setUseDirtyDrawing(bool useDirtyDrawing)
++	{
++		mUseDirtyDrawing = useDirtyDrawing;
++	}
+ }
+diff --git a/guichan/src/sdl/sdlgraphics.cpp b/guichan/src/sdl/sdlgraphics.cpp
+index 4792352..5e009f4 100644
+--- a/guichan/src/sdl/sdlgraphics.cpp
++++ b/guichan/src/sdl/sdlgraphics.cpp
+@@ -151,6 +151,13 @@ namespace gcn
+ 
+         SDL_Surface* srcImage = (SDL_Surface*)image->_getData();
+     
++        Color c = getColor();
++        if (!SDL_SetSurfaceColorMod(srcImage, c.r, c.g, c.b)) {
++            SDL_SetSurfaceColorMod(srcImage, 255, 255, 255);
++        }
++        if (!SDL_SetSurfaceAlphaMod(srcImage, c.a)) {
++            SDL_SetSurfaceAlphaMod(srcImage, 255);
++        }
+         SDL_BlitSurface(srcImage, &src, mTarget, &dst);    
+     }
+ 
+diff --git a/guichan/src/sdl/sdlinput.cpp b/guichan/src/sdl/sdlinput.cpp
+index f03973a..32987e6 100644
+--- a/guichan/src/sdl/sdlinput.cpp
++++ b/guichan/src/sdl/sdlinput.cpp
+@@ -59,11 +59,23 @@
+ #include "guichan/sdl/sdlinput.hpp"
+ #include "guichan/exception.hpp"
+ 
++extern uint32_t SDL_CUSTOM_KEY_UP;
++
++// Ugh... This entire file is so redundant with sdl.cpp - but I don't feel like refactoring the entire guichan mess...
++// So... more mess!!
++static char ControlIsDown = 0;
++
++static bool isTextInput(int key) {
++	return key >= 32 && key < 128 && !ControlIsDown;
++}
++
+ namespace gcn
+ {
+     SDLInput::SDLInput()
+     {
+         mMouseInWindow = true;
++		mMouseDown = false;
++		mIsRepeating = false;
+     }
+     
+     bool SDLInput::isKeyQueueEmpty()
+@@ -106,6 +118,17 @@ namespace gcn
+         return mouseInput;    
+     }
+     
++	void SDLInput::processKeyRepeat()
++	{
++		KeyInput keyInput;
++
++		if (mIsRepeating) {
++			keyInput.setKey(mLastKey);
++			keyInput.setType(KeyInput::PRESS);
++			mKeyInputQueue.push(keyInput);
++		}
++	}
++
+     void SDLInput::pushInput(SDL_Event event)
+     {
+         KeyInput keyInput;
+@@ -113,16 +136,50 @@ namespace gcn
+     
+         switch (event.type)
+         {
++          case SDL_TEXTINPUT:
++              {
++                  char* text = event.text.text;
++                  if (isTextInput((uint8_t)text[0])) {
++                      mLastKey = text[0];
++                      mIsRepeating = true;
++                      keyInput.setKey(mLastKey);
++                      keyInput.setType(KeyInput::PRESS);
++                      mKeyInputQueue.push(keyInput);
++                  }
++              }
++              break;
++
+           case SDL_KEYDOWN:
+-              keyInput.setKey(convertKeyCharacter(event.key.keysym));
+-              keyInput.setType(KeyInput::PRESS);        
+-              mKeyInputQueue.push(keyInput);
++              if (!isTextInput(event.key.keysym.sym)) {
++                  switch (event.key.keysym.sym) {
++                      case SDLK_LCTRL:
++                        ControlIsDown |= 0b01;
++                        break;
++                      case SDLK_RCTRL:
++                        ControlIsDown |= 0b10;
++                  }
++                  mLastKey = convertKeyCharacter(event.key.keysym);
++                  mIsRepeating = true;
++                  keyInput.setKey(mLastKey);
++                  keyInput.setType(KeyInput::PRESS);         
++                  mKeyInputQueue.push(keyInput);
++              }
+               break;
+ 
+           case SDL_KEYUP:
+-              keyInput.setKey(convertKeyCharacter(event.key.keysym));
+-              keyInput.setType(KeyInput::RELEASE);
+-              mKeyInputQueue.push(keyInput);
++              if (!isTextInput(event.key.keysym.sym)) {
++                  switch (event.key.keysym.sym) {
++                      case SDLK_LCTRL:
++                        ControlIsDown &= 0b10;
++                        break;
++                      case SDLK_RCTRL:
++                        ControlIsDown &= 0b01;
++                  }
++                  mIsRepeating = false;
++                  keyInput.setKey(convertKeyCharacter(event.key.keysym));
++                  keyInput.setType(KeyInput::RELEASE);
++                  mKeyInputQueue.push(keyInput);
++              }
+               break;
+ 
+           case SDL_MOUSEBUTTONDOWN:
+@@ -145,6 +202,19 @@ namespace gcn
+               mMouseInputQueue.push(mouseInput);
+               break;
+         
++          case SDL_MOUSEWHEEL:
++              if (event.wheel.y != 0) {
++                  SDL_GetMouseState(&mouseInput.x, &mouseInput.y);
++                  if (event.wheel.y > 0)
++                    mouseInput.setType(MouseInput::WHEEL_UP);
++                  else
++                    mouseInput.setType(MouseInput::WHEEL_DOWN);
++                  mouseInput.setButton(MouseInput::EMPTY);
++                  mouseInput.setTimeStamp(event.wheel.timestamp);
++                  mMouseInputQueue.push(mouseInput);
++              }
++              break;
++
+           case SDL_MOUSEMOTION:
+               mouseInput.x = event.button.x;
+               mouseInput.y = event.button.y;
+@@ -154,30 +224,40 @@ namespace gcn
+               mMouseInputQueue.push(mouseInput);
+               break;
+         
+-          case SDL_ACTIVEEVENT:
++          case SDL_WINDOWEVENT:
+               /* 
+                * This occurs when the mouse leaves the window and the Gui-chan
+                * application loses its mousefocus.
+                */
+-              if ((event.active.state & SDL_APPMOUSEFOCUS)
+-                  && !event.active.gain)
++              switch (event.window.event)
+               {
+-                  mMouseInWindow = false;
+-          
+-                  if (!mMouseDown)
+-                  {
+-                      mouseInput.x = -1;
+-                      mouseInput.y = -1;
+-                      mouseInput.setButton(MouseInput::EMPTY);
+-                      mouseInput.setType(MouseInput::MOTION);
+-                      mMouseInputQueue.push(mouseInput);
+-                  }
++                  case SDL_WINDOWEVENT_LEAVE:
++                      {
++                          mMouseInWindow = false;
++
++                          if (!mMouseDown)
++                          {
++                              mouseInput.x = -1;
++                              mouseInput.y = -1;
++                              mouseInput.setButton(MouseInput::EMPTY);
++                              mouseInput.setType(MouseInput::MOTION);
++                              mMouseInputQueue.push(mouseInput);
++                          }
++                      }
++                      break;
++
++                  case SDL_WINDOWEVENT_ENTER:
++                      mMouseInWindow = true;
++                      break;
+               }
++              break;
+ 
+-              if ((event.active.state & SDL_APPMOUSEFOCUS)
+-                  && event.active.gain)
+-              {
+-                  mMouseInWindow = true;
++            default:
++              if (event.type == SDL_CUSTOM_KEY_UP) {
++                  mIsRepeating = false;
++                  keyInput.setKey(static_cast<char>(event.user.code));
++                  keyInput.setType(KeyInput::RELEASE);
++                  mKeyInputQueue.push(keyInput);
+               }
+               break;
+         
+@@ -197,28 +277,20 @@ namespace gcn
+           case SDL_BUTTON_MIDDLE:
+               return MouseInput::MIDDLE;
+               break;
+-          case SDL_BUTTON_WHEELUP:
+-              return MouseInput::WHEEL_UP;
+-              break;
+-          case SDL_BUTTON_WHEELDOWN:
+-              return MouseInput::WHEEL_DOWN;
+-              break;
+         } 
+ 
+-        throw GCN_EXCEPTION("Unknown SDL mouse type.");
+-    
++#ifdef DEBUG
++    	fprintf(stderr,"Unknown SDL mouse button.\n");
++#endif
++
+         return 0;
+     }
+ 
+-    Key SDLInput::convertKeyCharacter(SDL_keysym keysym)
++    Key SDLInput::convertKeyCharacter(SDL_Keysym keysym)
+     {
+         int value = 0; 
+         Key key;
+     
+-        if (keysym.unicode < 255)
+-        {
+-            value = (int)keysym.unicode;
+-        }
+ 
+         switch (keysym.sym)
+         {
+@@ -270,7 +342,7 @@ namespace gcn
+           case SDLK_PAGEUP:
+               value = Key::PAGE_UP;
+               break;
+-          case SDLK_PRINT:
++          case SDLK_PRINTSCREEN:
+               value = Key::PRINT_SCREEN;
+               break;
+           case SDLK_PAGEDOWN:
+@@ -321,25 +393,19 @@ namespace gcn
+           case SDLK_F15:
+               value = Key::F15;
+               break;
+-          case SDLK_NUMLOCK:
++          case SDLK_NUMLOCKCLEAR:
+               value = Key::NUM_LOCK;
+               break;
+           case SDLK_CAPSLOCK:
+               value = Key::CAPS_LOCK;
+               break;
+-          case SDLK_SCROLLOCK:
++          case SDLK_SCROLLLOCK:
+               value = Key::SCROLL_LOCK;
+               break;
+-          case SDLK_RMETA:
+-              value = Key::RIGHT_META;
+-              break;
+-          case SDLK_LMETA:
+-              value = Key::LEFT_META;
+-              break;
+-          case SDLK_LSUPER:
++          case SDLK_LGUI:
+               value = Key::LEFT_SUPER;
+               break;
+-          case SDLK_RSUPER:
++          case SDLK_RGUI:
+               value = Key::RIGHT_SUPER;
+               break;
+           case SDLK_MODE:
+@@ -365,6 +431,7 @@ namespace gcn
+               break;
+ 
+           default:
++              value = keysym.sym;
+               break;
+         }
+ 
+@@ -372,48 +439,48 @@ namespace gcn
+         {
+             switch (keysym.sym)
+             {
+-              case SDLK_KP0:
++              case SDLK_KP_0:
+                   value = Key::INSERT;
+                   break;
+-              case SDLK_KP1:
++              case SDLK_KP_1:
+                   value = Key::END;
+                   break;
+-              case SDLK_KP2:
++              case SDLK_KP_2:
+                   value = Key::DOWN;
+                   break;
+-              case SDLK_KP3:
++              case SDLK_KP_3:
+                   value = Key::PAGE_DOWN;
+                   break;
+-              case SDLK_KP4:
++              case SDLK_KP_4:
+                   value = Key::LEFT;
+                   break;
+-              case SDLK_KP5:
++              case SDLK_KP_5:
+                   value = 0;
+                   break;
+-              case SDLK_KP6:
++              case SDLK_KP_6:
+                   value = Key::RIGHT;
+                   break;
+-              case SDLK_KP7:
++              case SDLK_KP_7:
+                   value = Key::HOME;
+                   break;
+-              case SDLK_KP8:
++              case SDLK_KP_8:
+                   value = Key::UP;
+                   break;
+-              case SDLK_KP9:
++              case SDLK_KP_9:
+                   value = Key::PAGE_UP;
+-                  break;          
++                  break;
+               default:
+                   break;
+             } 
+         }
+ 
+         key.setValue(value);
+-        key.setShiftPressed(keysym.mod & KMOD_SHIFT);
+-        key.setControlPressed(keysym.mod & KMOD_CTRL);
+-        key.setAltPressed(keysym.mod & KMOD_ALT);
+-        key.setMetaPressed(keysym.mod & KMOD_META);
++        key.setShiftPressed((keysym.mod & KMOD_SHIFT) != 0);
++        key.setControlPressed((keysym.mod & KMOD_CTRL) != 0);
++        key.setAltPressed((keysym.mod & KMOD_ALT) != 0);
++        key.setMetaPressed((keysym.mod & KMOD_GUI) != 0);
+ 
+-        if (keysym.sym >= SDLK_KP0 && keysym.sym <= SDLK_KP_EQUALS)
++        if (keysym.sym >= SDLK_KP_0 && keysym.sym <= SDLK_KP_EQUALS)
+         {
+             key.setNumericPad(true);
+         }
+diff --git a/guichan/src/widget.cpp b/guichan/src/widget.cpp
+index 71928f9..5d29d83 100644
+--- a/guichan/src/widget.cpp
++++ b/guichan/src/widget.cpp
+@@ -89,15 +89,17 @@ namespace gcn
+         
+         mCurrentFont = NULL;
+         mWidgets.push_back(this); 
++        mDirty = true;
+     }
+ 
+     Widget::~Widget()
+     {
++        setEnabled(false);
+         if (getParent() != NULL)
+         {
+             getParent()->_announceDeath(this);
+         }
+-        
++        _setParent(NULL);
+         _setFocusHandler(NULL);
+     
+         mWidgets.remove(this);
+@@ -299,6 +301,16 @@ namespace gcn
+         return mBackgroundColor;
+     }
+ 
++    void Widget::setDisabledColor(const Color& color)
++    {
++        mDisabledColor = color;
++    }
++
++    const Color& Widget::getDisabledColor() const
++    {
++        return mDisabledColor;
++    }
++
+     void Widget::_setFocusHandler(FocusHandler* focusHandler)
+     {
+         if (mFocusHandler)
+@@ -383,7 +395,8 @@ namespace gcn
+               if (hasMouse())
+               {
+                   requestFocus();
+-                  mFocusHandler->requestDrag(this);
++                  if (b != MouseInput::WHEEL_UP && b != MouseInput::WHEEL_DOWN)
++                      mFocusHandler->requestDrag(this);
+               }
+                 
+               if (b != MouseInput::WHEEL_UP && b != MouseInput::WHEEL_DOWN)
+@@ -412,20 +425,7 @@ namespace gcn
+                       mClickButton = 0;
+                   }
+               }
+-              else if (b == MouseInput::WHEEL_UP)
+-              {
+-                  for (iter = mMouseListeners.begin(); iter != mMouseListeners.end(); ++iter)
+-                  {
+-                      (*iter)->mouseWheelUp(x, y);
+-                  }
+-              }
+-              else
+-              {
+-                  for (iter = mMouseListeners.begin(); iter != mMouseListeners.end(); ++iter)
+-                  {
+-                      (*iter)->mouseWheelDown(x, y);
+-                  }
+-              }
++              setDirty(true);
+               break;
+ 
+           case MouseInput::RELEASE:
+@@ -462,11 +462,28 @@ namespace gcn
+                   mClickCount = 0;
+                   mClickTimeStamp = 0;
+               }
++              setDirty(true);
++              break;
++
++          case MouseInput::WHEEL_UP:
++              for (iter = mMouseListeners.begin(); iter != mMouseListeners.end(); ++iter)
++              {
++                  (*iter)->mouseWheelUp(x, y);
++              }
++              setDirty(true);
++              break;
++
++          case MouseInput::WHEEL_DOWN:
++              for (iter = mMouseListeners.begin(); iter != mMouseListeners.end(); ++iter)
++              {
++                  (*iter)->mouseWheelDown(x, y);
++              }
++              setDirty(true);
+               break;
+         }    
+     }
+ 
+-    void Widget::_keyInputMessage(const KeyInput& keyInput)
++    bool Widget::_keyInputMessage(const KeyInput& keyInput)
+     {
+         if (mFocusHandler == NULL)
+         {
+@@ -476,27 +493,36 @@ namespace gcn
+         if (!mEnabled || (mFocusHandler->getModalFocused() != NULL &&
+                           !hasModalFocus()))
+         {
+-            return;
++            return false;
+         }
+         
+         KeyListenerIterator iter;
++        bool keyProcessed = false;
+     
+         switch(keyInput.getType())
+         {
+           case KeyInput::PRESS:
+               for (iter = mKeyListeners.begin(); iter != mKeyListeners.end(); ++iter)
+               {
+-                  (*iter)->keyPress(keyInput.getKey());
++                  if ((*iter)->keyPress(keyInput.getKey()))
++                  {
++                      keyProcessed = true;
++                  }
+               }        
+               break;
+         
+           case KeyInput::RELEASE:
+               for (iter = mKeyListeners.begin(); iter != mKeyListeners.end(); ++iter)
+               {
+-                  (*iter)->keyRelease(keyInput.getKey());
++                  if ((*iter)->keyRelease(keyInput.getKey()))
++                  {
++                      keyProcessed = true;
++                  }
+               }        
+               break;
+         }    
++
++        return keyProcessed;
+     }
+ 
+     void Widget::_mouseInMessage()
+@@ -507,6 +533,7 @@ namespace gcn
+         }
+ 
+         mHasMouse = true;
++        setDirty(true);
+ 
+         MouseListenerIterator iter;
+         for (iter = mMouseListeners.begin(); iter != mMouseListeners.end(); ++iter)
+@@ -518,6 +545,7 @@ namespace gcn
+     void Widget::_mouseOutMessage()
+     {
+         mHasMouse = false;
++        setDirty(true);
+ 
+         MouseListenerIterator iter;
+         for (iter = mMouseListeners.begin(); iter != mMouseListeners.end(); ++iter)
+@@ -588,6 +616,18 @@ namespace gcn
+         fontChanged();    
+     } 
+ 
++    void Widget::setHotKey(const int key)
++    {
++        if (isascii(key))
++        {
++            mHotKey = tolower(key);
++        }
++        else
++        {
++            mHotKey = key;
++        }
++    }
++
+     bool Widget::widgetExists(const Widget* widget)
+     {
+         bool result = false;
+@@ -684,4 +724,14 @@ namespace gcn
+ 
+         return mFocusHandler->getModalFocused() == this;
+     }
++
++    void Widget::setDirty(bool dirty)
++    {
++        mDirty = dirty;
++    }
++
++    bool Widget::getDirty() const
++    {
++        return mDirty;
++    }
+ }
+diff --git a/guichan/src/widgets/button.cpp b/guichan/src/widgets/button.cpp
+index b8f0945..6ae4cf3 100644
+--- a/guichan/src/widgets/button.cpp
++++ b/guichan/src/widgets/button.cpp
+@@ -81,6 +81,7 @@ namespace gcn
+         
+         mMouseDown = false;
+         mKeyDown = false;
++        mHotKeyDown = false;
+ 
+         addMouseListener(this);
+         addKeyListener(this);    
+@@ -89,6 +90,7 @@ namespace gcn
+     void Button::setCaption(const std::string& caption)
+     {
+         mCaption = caption;    
++        setDirty(true);
+     }
+ 
+     const std::string& Button::getCaption() const
+@@ -121,8 +123,16 @@ namespace gcn
+             shadowColor = faceColor + 0x303030;      
+             shadowColor.a = alpha;
+         }
++        else if (isEnabled())
++        {
++            highlightColor = faceColor + 0x303030;
++            highlightColor.a = alpha;
++            shadowColor = faceColor - 0x303030;
++            shadowColor.a = alpha;
++        }
+         else
+         {
++            faceColor = getDisabledColor();
+             highlightColor = faceColor + 0x303030;
+             highlightColor.a = alpha;
+             shadowColor = faceColor - 0x303030;
+@@ -210,7 +220,7 @@ namespace gcn
+ 
+     bool Button::isPressed() const
+     {
+-        return (hasMouse() && mMouseDown) || mKeyDown;
++        return (hasMouse() && mMouseDown) || mKeyDown || mHotKeyDown;
+     }
+     
+     void Button::mouseClick(int x, int y, int button, int count)
+@@ -237,22 +247,46 @@ namespace gcn
+         }
+     }
+   
+-    void Button::keyPress(const Key& key)
++    bool Button::keyPress(const Key& key)
+     {
++        bool ret = false;
++
+         if (key.getValue() == Key::ENTER || key.getValue() == Key::SPACE)
+         {
+             mKeyDown = true;
++            ret = true;
+         }
+ 
++        mHotKeyDown = false;
+         mMouseDown = false;    
++        return ret;
+     }
+ 
+-    void Button::keyRelease(const Key& key)
++    bool Button::keyRelease(const Key& key)
+     {
++        bool ret = false;
++
+         if ((key.getValue() == Key::ENTER || key.getValue() == Key::SPACE) && mKeyDown)
+         {
+             mKeyDown = false;
+             generateAction();
++            ret = true;
++        }
++        return ret;
++    }
++
++    void Button::hotKeyPress()
++    {
++        mHotKeyDown = true;
++        mMouseDown = false;
++    }
++
++    void Button::hotKeyRelease()
++    {
++        if (mHotKeyDown)
++        {
++            mHotKeyDown = false;
++            generateAction();
+         }
+     }
+ 
+@@ -260,5 +294,6 @@ namespace gcn
+     {
+         mMouseDown = false;
+         mKeyDown = false;
++		mHotKeyDown = false;
+     }  
+ }
+diff --git a/guichan/src/widgets/checkbox.cpp b/guichan/src/widgets/checkbox.cpp
+index 7c198db..769306d 100644
+--- a/guichan/src/widgets/checkbox.cpp
++++ b/guichan/src/widgets/checkbox.cpp
+@@ -93,7 +93,7 @@ namespace gcn
+ 
+         graphics->drawText(getCaption(), h - 2, 0);
+ 
+-        if (hasFocus())
++        if (hasFocus() && !getCaption().empty())
+         {        
+             graphics->drawRectangle(Rectangle(h - 4, 0, getWidth() - h + 3, getHeight()));
+         }        
+@@ -176,15 +176,18 @@ namespace gcn
+     void CheckBox::setCaption(const std::string caption)
+     {
+         mCaption = caption;
++        setDirty(true);
+     }
+   
+-    void CheckBox::keyPress(const Key& key)
++    bool CheckBox::keyPress(const Key& key)
+     {
+         if (key.getValue() == Key::ENTER ||
+             key.getValue() == Key::SPACE)
+         {
+             toggle();
++            return true;
+         }
++        return false;
+     }
+   
+     void CheckBox::mouseClick(int x, int y, int button, int count)
+diff --git a/guichan/src/widgets/container.cpp b/guichan/src/widgets/container.cpp
+index 9e252eb..4bead1c 100644
+--- a/guichan/src/widgets/container.cpp
++++ b/guichan/src/widgets/container.cpp
+@@ -296,8 +296,10 @@ namespace gcn
+             if (*iter == widget)
+             {
+                 mWidgets.erase(iter);
+-                widget->_setFocusHandler(NULL);
+-                widget->_setParent(NULL);
++                if (this->isParentOfWidget(widget)) {
++                    widget->_setFocusHandler(NULL);
++                    widget->_setParent(NULL);
++                }
+                 return;
+             }
+         }
+@@ -313,8 +315,10 @@ namespace gcn
+ 
+         for (iter = mWidgets.begin(); iter != mWidgets.end(); iter++)
+         {      
+-            (*iter)->_setFocusHandler(NULL);
+-            (*iter)->_setParent(NULL);
++            if (this->isParentOfWidget(*iter)) {
++                (*iter)->_setFocusHandler(NULL);
++                (*iter)->_setParent(NULL);
++            }
+         }
+     
+         mWidgets.clear();
+@@ -384,4 +388,33 @@ namespace gcn
+ 
+         Widget::_mouseOutMessage();
+     }  
++
++	void Container::setDirty(bool dirty)
++	{
++        WidgetConstIterator iter;
++        for (iter = mWidgets.begin(); iter != mWidgets.end(); iter++)
++		{
++			(*iter)->setDirty(dirty);
++		}
++		mDirty = dirty;
++	}
++
++	bool Container::getDirty() const
++	{
++		if (mDirty == true)
++		{
++			return true;
++		}
++
++		WidgetConstIterator iter;
++        for (iter = mWidgets.begin(); iter != mWidgets.end(); iter++)
++		{
++			if ((*iter)->getDirty())
++			{
++				return true;
++			}
++		}
++
++		return false;
++	}
+ }
+diff --git a/guichan/src/widgets/dropdown.cpp b/guichan/src/widgets/dropdown.cpp
+index ea8c48c..548ce0f 100644
+--- a/guichan/src/widgets/dropdown.cpp
++++ b/guichan/src/widgets/dropdown.cpp
+@@ -61,6 +61,7 @@ namespace gcn
+     {
+         mDroppedDown = false;
+         mPushed = false;
++        mOldH = 0;
+     
+         setWidth(100);
+         setFocusable(true);
+@@ -89,6 +90,7 @@ namespace gcn
+         setFocusable(true);
+         mDroppedDown = false;
+         mPushed = false;    
++        mOldH = 0;
+     
+         mDefaultScrollArea = new ScrollArea();
+         mDefaultScrollArea->setHorizontalScrollPolicy(ScrollArea::SHOW_NEVER);
+@@ -124,6 +126,7 @@ namespace gcn
+         setFocusable(true);
+         mDroppedDown = false;
+         mPushed = false;
++        mOldH = 0;
+     
+         mDefaultScrollArea = NULL;
+         mDefaultListBox = NULL;
+@@ -218,7 +221,7 @@ namespace gcn
+     
+         if (mListBox->getListModel() && mListBox->getSelected() >= 0)
+         {
+-            graphics->drawText(mListBox->getListModel()->getElementAt(mListBox->getSelected()), 1, 0);
++            graphics->drawText(mListBox->getListModel()->getElementAt(mListBox->getSelected()), 1, (h - getFont()->getHeight()) / 2);
+         }
+ 
+         if (hasFocus())
+@@ -355,7 +358,7 @@ namespace gcn
+         }        
+     }
+     
+-    void DropDown::keyPress(const Key& key)
++    bool DropDown::keyPress(const Key& key)
+     {
+         if (mScrollArea == NULL || mScrollArea->getContent() == NULL)
+         {
+@@ -366,7 +369,9 @@ namespace gcn
+             && !mDroppedDown)
+         {
+             dropDown();
+-        }        
++            return true;
++        }
++		return false;
+     }
+   
+     void DropDown::mousePress(int x, int y, int button)
+@@ -473,7 +478,7 @@ namespace gcn
+         }
+ 
+         int listBoxHeight = mListBox->getHeight();
+-        int h2 = getFont()->getHeight();
++        int h2 = mOldH ? mOldH : getFont()->getHeight();
+ 
+         setHeight(h2);
+ 
+@@ -527,7 +532,7 @@ namespace gcn
+         }        
+     }
+ 
+-    void DropDown::_keyInputMessage(const KeyInput& keyInput)
++    bool DropDown::_keyInputMessage(const KeyInput& keyInput)
+     {        
+         if (mDroppedDown)
+         {
+@@ -538,12 +543,16 @@ namespace gcn
+ 
+             if (mFocusHandler.getFocused() != NULL)
+             {
+-                mFocusHandler.getFocused()->_keyInputMessage(keyInput);
++                return mFocusHandler.getFocused()->_keyInputMessage(keyInput);
++            }
++            else
++            {
++                return false;
+             }
+         }
+         else
+         {
+-            BasicContainer::_keyInputMessage(keyInput);
++            return BasicContainer::_keyInputMessage(keyInput);
+         }        
+     }
+     
+@@ -676,5 +685,20 @@ namespace gcn
+                 
+         Widget::setForegroundColor(color);
+     }     
++
++    void DropDown::setFont(Font *font)
++    {
++        Widget::setFont(font);
++        mListBox->setFont(font);
++    }
++
++	bool DropDown::getDirty() const
++	{
++		if (mDroppedDown)
++		{
++			return mScrollArea->getDirty();
++		}
++		return mDirty;
++	}
+ }
+ 
+diff --git a/guichan/src/widgets/icon.cpp b/guichan/src/widgets/icon.cpp
+index 6fd2102..b1e508e 100644
+--- a/guichan/src/widgets/icon.cpp
++++ b/guichan/src/widgets/icon.cpp
+@@ -65,14 +65,21 @@ namespace gcn
+     Icon::Icon(Image* image)
+     {
+         mImage = image;
++        mColor = Color(255, 255, 255, 255);
+         setHeight(image->getHeight());
+         setWidth(image->getWidth());
++        Widget::setDirty(true);
+     }
+ 
+     void Icon::draw(Graphics* graphics)
+     {
++        graphics->setColor(mColor);
+         graphics->drawImage(mImage, 0, 0);
++    }
+ 
++    bool Icon::getDirty() const
++    {
++        return Widget::getDirty() || mImage->isDirty();
+     }
+ 
+     void Icon::drawBorder(Graphics* graphics)
+@@ -98,4 +105,10 @@ namespace gcn
+             graphics->drawLine(i,height - i, width - i - 1, height - i); 
+         }
+     }
++
++    void Icon::setBaseColor(const Color& color)
++    {
++        Widget::setDirty(true);
++        mColor = color;
++    }
+ }
+diff --git a/guichan/src/widgets/label.cpp b/guichan/src/widgets/label.cpp
+index f3c9bd7..a8df5dd 100644
+--- a/guichan/src/widgets/label.cpp
++++ b/guichan/src/widgets/label.cpp
+@@ -83,6 +83,7 @@ namespace gcn
+     void Label::setCaption(const std::string& caption)
+     {
+         mCaption = caption;
++        setDirty(true);
+     }
+ 
+     void Label::setAlignment(unsigned int alignment)
+diff --git a/guichan/src/widgets/listbox.cpp b/guichan/src/widgets/listbox.cpp
+index ed76f68..fe9869a 100644
+--- a/guichan/src/widgets/listbox.cpp
++++ b/guichan/src/widgets/listbox.cpp
+@@ -88,9 +88,6 @@ namespace gcn
+ 
+     void ListBox::draw(Graphics* graphics)
+     {
+-        graphics->setColor(getBackgroundColor());
+-        graphics->fillRectangle(Rectangle(0, 0, getWidth(), getHeight()));
+-
+         if (mListModel == NULL)      
+         {
+             return;
+@@ -112,6 +109,8 @@ namespace gcn
+             if (i == mSelected)
+             {
+                 graphics->drawRectangle(Rectangle(0, y, getWidth(), fontHeight));
++				graphics->setColor(Color(40, 60, 120));
++				graphics->fillRectangle(Rectangle(1, y + 1, getWidth() - 2, fontHeight - 2));
+             }
+       
+             graphics->drawText(mListModel->getElementAt(i), 1, y);      
+@@ -192,11 +191,14 @@ namespace gcn
+         }
+     }
+ 
+-    void ListBox::keyPress(const Key& key)
++    bool ListBox::keyPress(const Key& key)
+     {    
++        bool ret = false;
++
+         if (key.getValue() == Key::ENTER || key.getValue() == Key::SPACE)
+         {
+             generateAction();
++            ret = true;
+         }
+         else if (key.getValue() == Key::UP)
+         {      
+@@ -206,11 +208,14 @@ namespace gcn
+             {
+                 setSelected(0);
+             }
++            ret = true;
+         }
+         else if (key.getValue() == Key::DOWN)
+         {
+             setSelected(mSelected + 1);
++			ret = true;
+         }
++        return ret;
+     }
+ 
+     void ListBox::mousePress(int x, int y, int button)
+@@ -219,6 +224,9 @@ namespace gcn
+         {
+             setSelected(y / getFont()->getHeight());
+             generateAction();
++        } else if (button == MouseInput::RIGHT && hasMouse()) {
++            setSelected(-1);
++            generateAction();
+         }
+     }
+ 
+diff --git a/guichan/src/widgets/radiobutton.cpp b/guichan/src/widgets/radiobutton.cpp
+index 62db9ae..4e1e543 100644
+--- a/guichan/src/widgets/radiobutton.cpp
++++ b/guichan/src/widgets/radiobutton.cpp
+@@ -234,16 +234,19 @@ namespace gcn
+     void RadioButton::setCaption(const std::string caption)
+     {
+         mCaption = caption;
++        setDirty(true);
+     }
+ 
+-    void RadioButton::keyPress(const Key& key)
++    bool RadioButton::keyPress(const Key& key)
+     {
+         if (key.getValue() == Key::ENTER ||
+             key.getValue() == Key::SPACE)
+         {
+             setMarked(true);
+             generateAction();
++            return true;
+         }    
++        return false;
+     }
+ 
+     void RadioButton::mouseClick(int x, int y, int button, int count)
+diff --git a/guichan/src/widgets/scrollarea.cpp b/guichan/src/widgets/scrollarea.cpp
+index e45ea22..30e41e5 100644
+--- a/guichan/src/widgets/scrollarea.cpp
++++ b/guichan/src/widgets/scrollarea.cpp
+@@ -396,6 +396,7 @@ namespace gcn
+             {
+                 setVerticalScrollAmount(0);
+             }     
++            setDirty(true);
+         }
+         if (mHorizontalMarkerPressed)
+         {
+@@ -413,6 +414,7 @@ namespace gcn
+             {
+                 setHorizontalScrollAmount(0);
+             }     
++            setDirty(true);
+         }
+     }
+ 
+@@ -421,11 +423,13 @@ namespace gcn
+         graphics->setColor(getBackgroundColor());
+         graphics->fillRectangle(getContentDimension());
+       
++#if 0
+         int alpha = getBaseColor().a;
+         Color highlightColor = getBaseColor() + 0x303030;
+         highlightColor.a = alpha;    
+         Color shadowColor = getBaseColor() - 0x303030;      
+         shadowColor.a = alpha;
++#endif
+       
+         if (mVBarVisible)
+         {
+diff --git a/guichan/src/widgets/slider.cpp b/guichan/src/widgets/slider.cpp
+index 5a0864f..cec3cb0 100644
+--- a/guichan/src/widgets/slider.cpp
++++ b/guichan/src/widgets/slider.cpp
+@@ -256,6 +256,7 @@ namespace gcn
+             }
+       
+             generateAction();
++            setDirty(true);
+         }
+     }
+     
+@@ -291,19 +292,23 @@ namespace gcn
+         mMarkerLength = length;
+     }
+ 
+-    void Slider::keyPress(const Key& key)
++    bool Slider::keyPress(const Key& key)
+     {
++        bool ret = false;
++
+         if (getOrientation() == HORIZONTAL)
+         {
+             if (key.getValue() == Key::RIGHT)
+             {
+                 setValue(getValue() + getStepLength());
+                 generateAction();
++                ret = true;
+             }
+             else if (key.getValue() == Key::LEFT)
+             {
+                 setValue(getValue() - getStepLength());
+                 generateAction();
++                ret = true;
+             }
+         }
+         else
+@@ -312,13 +317,16 @@ namespace gcn
+             {
+                 setValue(getValue() + getStepLength());
+                 generateAction();
++                ret = true;
+             }
+             else if (key.getValue() == Key::DOWN)
+             {
+                 setValue(getValue() - getStepLength());
+                 generateAction();
++                ret = true;
+             }
+         }
++        return ret;
+     }
+ 
+     void Slider::setOrientation(unsigned int orientation)
+diff --git a/guichan/src/widgets/textbox.cpp b/guichan/src/widgets/textbox.cpp
+index edfab81..e1a34e5 100644
+--- a/guichan/src/widgets/textbox.cpp
++++ b/guichan/src/widgets/textbox.cpp
+@@ -191,8 +191,10 @@ namespace gcn
+         }
+     }
+   
+-    void TextBox::keyPress(const Key& key)
++    bool TextBox::keyPress(const Key& key)
+     {    
++        bool ret = false;
++
+         if (key.getValue() == Key::LEFT)
+         {
+             --mCaretColumn;
+@@ -210,6 +212,7 @@ namespace gcn
+                     mCaretColumn = mTextRows[mCaretRow].size();
+                 }
+             }
++            ret = true;
+         }
+ 
+         else if (key.getValue() == Key::RIGHT)
+@@ -234,26 +237,31 @@ namespace gcn
+                     mCaretColumn = 0;
+                 }
+             }
++            ret = true;
+         }
+ 
+         else if (key.getValue() == Key::DOWN)
+         {
+             setCaretRow(mCaretRow + 1);
++            ret = true;
+         }
+ 
+         else if (key.getValue() == Key::UP)
+         {
+             setCaretRow(mCaretRow - 1);
++            ret = true;
+         }
+ 
+         else if (key.getValue() == Key::HOME)
+         {
+             mCaretColumn = 0;
++            ret = true;
+         }    
+ 
+         else if (key.getValue() == Key::END)
+         {
+             mCaretColumn = mTextRows[mCaretRow].size();
++            ret = true;
+         }    
+ 
+         else if (key.getValue() == Key::ENTER && mEditable)
+@@ -263,6 +271,7 @@ namespace gcn
+             mTextRows[mCaretRow].resize(mCaretColumn);
+             ++mCaretRow;
+             mCaretColumn = 0;
++            ret = true;
+         }
+ 
+         else if (key.getValue() == Key::BACKSPACE
+@@ -271,6 +280,7 @@ namespace gcn
+         {
+             mTextRows[mCaretRow].erase(mCaretColumn - 1, 1);
+             --mCaretColumn;
++            ret = true;
+         }
+ 
+         else if (key.getValue() == Key::BACKSPACE
+@@ -282,6 +292,7 @@ namespace gcn
+             mTextRows[mCaretRow - 1] += mTextRows[mCaretRow];
+             mTextRows.erase(mTextRows.begin() + mCaretRow);
+             --mCaretRow;
++            ret = true;
+         }
+ 
+         else if (key.getValue() == Key::DELETE
+@@ -289,6 +300,7 @@ namespace gcn
+                  && mEditable)
+         {
+             mTextRows[mCaretRow].erase(mCaretColumn, 1);
++            ret = true;
+         }
+ 
+         else if (key.getValue() == Key::DELETE
+@@ -298,6 +310,7 @@ namespace gcn
+         {
+             mTextRows[mCaretRow] += mTextRows[mCaretRow + 1];
+             mTextRows.erase(mTextRows.begin() + mCaretRow + 1);
++            ret = true;
+         }
+ 
+         else if(key.getValue() == Key::PAGE_UP)
+@@ -311,6 +324,7 @@ namespace gcn
+             {
+                 mCaretRow = 0;
+             }
++            ret = true;
+         }
+ 
+         else if(key.getValue() == Key::PAGE_DOWN)
+@@ -324,6 +338,7 @@ namespace gcn
+             {
+                 mCaretRow = mTextRows.size() - 1;
+             }
++            ret = true;
+         }
+ 
+         else if(key.getValue() == Key::TAB
+@@ -331,6 +346,7 @@ namespace gcn
+         {
+             mTextRows[mCaretRow].insert(mCaretColumn,std::string("    "));
+             mCaretColumn += 4;      
++            ret = true;
+         }
+ 
+         else if (key.isCharacter()
+@@ -338,10 +354,12 @@ namespace gcn
+         {
+             mTextRows[mCaretRow].insert(mCaretColumn,std::string(1,(char)key.getValue()));
+             ++mCaretColumn;
++            ret = true;
+         }   
+    
+         adjustSize();
+         scrollToCaret();    
++        return ret;
+     }
+ 
+     void TextBox::adjustSize()
+diff --git a/guichan/src/widgets/textfield.cpp b/guichan/src/widgets/textfield.cpp
+index 1a3a047..2e44194 100644
+--- a/guichan/src/widgets/textfield.cpp
++++ b/guichan/src/widgets/textfield.cpp
+@@ -155,51 +155,73 @@ namespace gcn
+         }      
+     }
+   
+-    void TextField::keyPress(const Key& key)
++	void TextField::mouseMotion(int x, int y)
++	{
++		if (isDragged() && mClickButton == MouseInput::LEFT)
++		{
++			mCaretPosition = getFont()->getStringIndexAt(mText, x + mXScroll);
++			fixScroll();
++			setDirty(true);
++		}
++	}
++
++    bool TextField::keyPress(const Key& key)
+     {
++		bool ret = false;
++
+         if (key.getValue() == Key::LEFT && mCaretPosition > 0)
+         {
+             --mCaretPosition;
++			ret = true;
+         }
+ 
+         else if (key.getValue() == Key::RIGHT && mCaretPosition < mText.size())
+         {
+             ++mCaretPosition;
++			ret = true;
+         }
+ 
+         else if (key.getValue() == Key::DELETE && mCaretPosition < mText.size())
+         {
+             mText.erase(mCaretPosition, 1);
++			ret = true;
+         }
+ 
+         else if (key.getValue() == Key::BACKSPACE && mCaretPosition > 0)
+         {
+             mText.erase(mCaretPosition - 1, 1);
+             --mCaretPosition;
++			ret = true;
+         }
+ 
+         else if (key.getValue() == Key::ENTER)
+         {
+             generateAction();
++            ret = true;
+         }
+ 
+         else if (key.getValue() == Key::HOME)
+         {
+             mCaretPosition = 0;
++			ret = true;
+         }    
+ 
+         else if (key.getValue() == Key::END)
+         {
+             mCaretPosition = mText.size();
++			ret = true;
+         }    
+ 
+         else if (key.isCharacter())
+         {
+             mText.insert(mCaretPosition, std::string(1,(char)key.getValue()));
+             ++mCaretPosition;
++			ret = true;
+         }
+ 
+         fixScroll();    
++        setDirty(true);
++        return ret;
+     }
+ 
+     void TextField::adjustSize()
+diff --git a/guichan/src/widgets/window.cpp b/guichan/src/widgets/window.cpp
+index b5fe2ae..07bb936 100644
+--- a/guichan/src/widgets/window.cpp
++++ b/guichan/src/widgets/window.cpp
+@@ -162,6 +162,7 @@ namespace gcn
+     void Window::setCaption(const std::string& caption)
+     {
+         mCaption = caption;
++        setDirty(true);
+     }
+ 
+     const std::string& Window::getCaption() const
+@@ -339,6 +340,7 @@ namespace gcn
+         {
+             setPosition(x - mMouseXOffset + getX(),
+                         y - mMouseYOffset + getY());
++			setDirty(true);
+         }
+     }
+   
+@@ -472,4 +474,28 @@ namespace gcn
+             getContent()->logic();
+         }
+     }   
++
++	void Window::setDirty(bool dirty)
++	{
++		if (mContent != NULL)
++		{
++			mContent->setDirty(dirty);
++		}
++		mDirty = dirty;
++	}
++
++	bool Window::getDirty() const
++	{
++		if (mDirty == true)
++		{
++			return true;
++		}
++
++		if (mContent != NULL && mContent->getDirty())
++		{
++			return true;
++		}
++
++		return false;
++	}
+ }
+-- 
+2.41.0.windows.1
+
