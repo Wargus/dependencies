@@ -416,3 +416,91 @@ macro(vendored_freepats)
       INSTALL_COMMAND "")
   endif()
 endmacro()
+
+macro(vendored_guichan)
+  set(guichan_SRCS
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/cliprectangle.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/color.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/defaultfont.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/exception.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/focushandler.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/font.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/graphics.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/gui.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/guichan.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/image.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/imagefont.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/key.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/keyinput.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/mouseinput.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/rectangle.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/sdl/sdl.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/sdl/sdlgraphics.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/sdl/sdlinput.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widget.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/button.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/container.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/dropdown.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/checkbox.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/icon.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/label.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/listbox.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/radiobutton.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/scrollarea.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/slider.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/textbox.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/textfield.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/src/widgets/window.cpp
+  )
+  set(guichan_HDRS
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/actionlistener.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/allegro.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/basiccontainer.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/cliprectangle.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/color.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/defaultfont.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/exception.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/focushandler.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/font.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/graphics.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/sdl.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/gui.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/imagefont.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/image.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/imageloader.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/input.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/key.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/keyinput.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/keylistener.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/listmodel.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/mouseinput.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/mouselistener.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/platform.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/rectangle.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/sdl/sdlgraphics.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/sdl/sdlimageloader.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/sdl/sdlinput.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/sdl/sdlpixel.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widget.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/button.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/container.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/dropdown.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/checkbox.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/icon.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/label.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/listbox.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/radiobutton.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/scrollarea.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/slider.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/textbox.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/textfield.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/window.hpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/x.hpp
+  )
+  add_library(guichan_lib ${guichan_SRCS} ${guichan_HDRS})
+  target_include_directories(guichan_lib SYSTEM PUBLIC ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include ${SDL2_INCLUDE_DIR})
+  if (BUILD_VENDORED_SDL)
+    add_dependencies(guichan_lib SDL2)
+  endif()
+endmacro()
