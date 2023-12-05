@@ -14,19 +14,18 @@ touch $directory/include/guichan/allegro/*
 touch $directory/include/guichan/opengl/*
 touch $directory/include/guichan/sdl/*
 touch $directory/include/guichan/widgets/*
-touch $directory/include/guichan/x/*
 touch $directory/src/*
 touch $directory/src/allegro/*
 touch $directory/src/opengl/*
 touch $directory/src/sdl/*
 touch $directory/src/widgets/*
-touch $directory/src/x/*
 
 # Regenerate configuration files
 aclocal
 autoheader
 automake --foreign --include-deps --add-missing --copy
-autoconf
+libtoolize --force
+autoreconf -i
 
 # Run configure for this platform
 #./configure $*

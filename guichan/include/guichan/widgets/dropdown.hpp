@@ -1,100 +1,89 @@
-/*      _______   __   __   __   ______   __   __   _______   __   __                 
- *     / _____/\ / /\ / /\ / /\ / ____/\ / /\ / /\ / ___  /\ /  |\/ /\                
- *    / /\____\// / // / // / // /\___\// /_// / // /\_/ / // , |/ / /                 
- *   / / /__   / / // / // / // / /    / ___  / // ___  / // /| ' / /                  
- *  / /_// /\ / /_// / // / // /_/_   / / // / // /\_/ / // / |  / /                   
- * /______/ //______/ //_/ //_____/\ /_/ //_/ //_/ //_/ //_/ /|_/ /                    
- * \______\/ \______\/ \_\/ \_____\/ \_\/ \_\/ \_\/ \_\/ \_\/ \_\/                      
+/*      _______   __   __   __   ______   __   __   _______   __   __
+ *     / _____/\ / /\ / /\ / /\ / ____/\ / /\ / /\ / ___  /\ /  |\/ /\
+ *    / /\____\// / // / // / // /\___\// /_// / // /\_/ / // , |/ / /
+ *   / / /__   / / // / // / // / /    / ___  / // ___  / // /| ' / /
+ *  / /_// /\ / /_// / // / // /_/_   / / // / // /\_/ / // / |  / /
+ * /______/ //______/ //_/ //_____/\ /_/ //_/ //_/ //_/ //_/ /|_/ /
+ * \______\/ \______\/ \_\/ \_____\/ \_\/ \_\/ \_\/ \_\/ \_\/ \_\/
  *
- * Copyright (c) 2004, 2005 darkbits                        Js_./
- * Per Larsson a.k.a finalman                          _RqZ{a<^_aa
- * Olof Naessén a.k.a jansem/yakslem                _asww7!uY`>  )\a//
- *                                                 _Qhm`] _f "'c  1!5m
- * Visit: http://guichan.darkbits.org             )Qk<P ` _: :+' .'  "{[
- *                                               .)j(] .d_/ '-(  P .   S
- * License: (BSD)                                <Td/Z <fP"5(\"??"\a.  .L
- * Redistribution and use in source and          _dV>ws?a-?'      ._/L  #'
- * binary forms, with or without                 )4d[#7r, .   '     )d`)[
- * modification, are permitted provided         _Q-5'5W..j/?'   -?!\)cam'
- * that the following conditions are met:       j<<WP+k/);.        _W=j f
- * 1. Redistributions of source code must       .$%w\/]Q  . ."'  .  mj$
- *    retain the above copyright notice,        ]E.pYY(Q]>.   a     J@\
- *    this list of conditions and the           j(]1u<sE"L,. .   ./^ ]{a
- *    following disclaimer.                     4'_uomm\.  )L);-4     (3=
- * 2. Redistributions in binary form must        )_]X{Z('a_"a7'<a"a,  ]"[
- *    reproduce the above copyright notice,       #}<]m7`Za??4,P-"'7. ).m
- *    this list of conditions and the            ]d2e)Q(<Q(  ?94   b-  LQ/
- *    following disclaimer in the                <B!</]C)d_, '(<' .f. =C+m
- *    documentation and/or other materials      .Z!=J ]e []('-4f _ ) -.)m]'
- *    provided with the distribution.          .w[5]' _[ /.)_-"+?   _/ <W"
- * 3. Neither the name of Guichan nor the      :$we` _! + _/ .        j?
- *    names of its contributors may be used     =3)= _f  (_yQmWW$#(    "
- *    to endorse or promote products derived     -   W,  sQQQQmZQ#Wwa]..
- *    from this software without specific        (js, \[QQW$QWW#?!V"".
- *    prior written permission.                    ]y:.<\..          .
- *                                                 -]n w/ '         [.
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT       )/ )/           !
- * HOLDERS AND CONTRIBUTORS "AS IS" AND ANY         <  (; sac    ,    '
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING,               ]^ .-  %
- * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF            c <   r
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR            aga<  <La
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE          5%  )P'-3L
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR        _bQf` y`..)a
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,          ,J?4P'.P"_(\?d'.,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES               _Pa,)!f/<[]/  ?"
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT      _2-..:. .r+_,.. .
- * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,     ?a.<%"'  " -'.a_ _,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION)                     ^
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Copyright (c) 2004 - 2008 Olof Naessén and Per Larsson
+ *
+ *
+ * Per Larsson a.k.a finalman
+ * Olof Naessén a.k.a jansem/yakslem
+ *
+ * Visit: http://guichan.sourceforge.net
+ *
+ * License: (BSD)
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of Guichan nor the names of its contributors may
+ *    be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef GCN_DROPDOWN_HPP
 #define GCN_DROPDOWN_HPP
 
-#include "guichan/basiccontainer.hpp"
+#include "guichan/actionlistener.hpp"
 #include "guichan/focushandler.hpp"
+#include "guichan/focuslistener.hpp"
 #include "guichan/keylistener.hpp"
-#include "guichan/listmodel.hpp"
 #include "guichan/mouselistener.hpp"
 #include "guichan/platform.hpp"
-#include "guichan/widgets/listbox.hpp"
-#include "guichan/widgets/scrollarea.hpp"
+#include "guichan/selectionlistener.hpp"
+#include "guichan/widget.hpp"
 
 namespace gcn
 {
+    class ListBox;
+    class ListModel;
+    class ScrollArea;
+
     /**
-     * A drop down box from which you can select different values. It is one of
-     * the most complicated Widgets you will find in Guichan. For drawing the
-     * DroppedDown box it uses one ScrollArea and one ListBox. It also uses an
-     * internal FocusHandler to handle the focus of the internal ScollArea and
-     * ListBox. DropDown uses a ListModel to handle the list. To be able to use
-     * DropDown you must give DropDown an implemented ListModel which represents
-     * your list.
+     * An implementation of a drop downable list from which an item can be
+     * selected. The drop down consists of an internal ScrollArea and an
+     * internal ListBox. The drop down also uses an internal FocusHandler to
+     * handle the focus of the internal ScollArea and the internal ListBox. The
+     * scroll area and the list box can be passed to the drop down if a custom
+     * scroll area and or a custom list box is preferable.
+     *
+     * To be able display a list the drop down uses a user provided list model.
+     * A list model can be any class that implements the ListModel interface.
+     *
+     * If an item is selected in the drop down a select event will be sent to
+     * all selection listeners of the drop down. If an item is selected by
+     * using a mouse click or by using the enter or space key an action event
+     * will be sent to all action listeners of the drop down.
      */
     class GCN_CORE_DECLSPEC DropDown :
-        public BasicContainer,
-        public MouseListener,
+        public Widget,
+        public ActionListener,
         public KeyListener,
-        public ActionListener
+        public MouseListener,
+        public FocusListener,
+        public SelectionListener
     {
     public:
-        /**
-         * Constructor.
-         */
-        DropDown();
-
-        /**
-         * Contructor.
-         *
-         * @param listModel the ListModel to use.
-         * @see ListModel.
-         */         
-        DropDown(ListModel *listModel);
-        
         /**
          * Contructor.
          *
@@ -102,157 +91,229 @@ namespace gcn
          * @param scrollArea the ScrollArea to use.
          * @param listBox the listBox to use.
          * @see ListModel, ScrollArea, ListBox.
-         */         
-        DropDown(ListModel *listModel,
-                 ScrollArea *scrollArea,
-                 ListBox *listBox);
+         */
+        DropDown(ListModel *listModel = NULL,
+                 ScrollArea *scrollArea = NULL,
+                 ListBox *listBox = NULL);
 
         /**
          * Destructor.
          */
         virtual ~DropDown();
-    
-        /**
-         * Gets the index int the ListModel of the selected element.
-         *
-         * @return the selected element.
-         */
-        virtual int getSelected();
 
         /**
-         * Sets the ListModel index of the selected element.
+         * Gets the selected item as an index in the list model.
          *
-         * @param selected the ListModel index of the selected element.
+         * @return the selected item as an index in the list model.
+         * @see setSelected
          */
-        virtual void setSelected(int selected);
+        int getSelected() const;
 
         /**
-         * Sets the ListModel to use.
+         * Sets the selected item. The selected item is represented by
+         * an index from the list model.
          *
-         * @param listModel the ListModel to use.
+         * @param selected the selected item as an index from the list model.
+         * @see getSelected
          */
-        virtual void setListModel(ListModel *listModel);
+        void setSelected(int selected);
 
         /**
-         * Gets the ListModel used.
+         * Sets the list model to use when displaying the list.
+         *
+         * @param listModel the list model to use.
+         * @see getListModel
+         */
+        void setListModel(ListModel *listModel);
+
+        /**
+         * Gets the list model used.
          *
          * @return the ListModel used.
+         * @see setListModel
          */
-        virtual ListModel *getListModel();
+        ListModel *getListModel() const;
 
         /**
-         * Sets the ScrollArea to use.
+         * Adjusts the height of the drop down to fit the height of the
+         * drop down's parent's height. It's used to not make the drop down
+         * draw itself outside of it's parent if folded down.
+         */
+        void adjustHeight();
+
+        /**
+         * Adds a selection listener to the drop down. When the selection
+         * changes an event will be sent to all selection listeners of the
+         * drop down.
          *
-         * @param scrollArea the ScrollArea to use.
-         */
-        virtual void setScrollArea(ScrollArea* scrollArea);
-
-        /**
-         * Gets the ScrollArea used.
+         * If you delete your selection listener, be sure to also remove it
+         * using removeSelectionListener().
          *
-         * @return the ScrollArea used.
+         * @param selectionListener the selection listener to add.
+         * @since 0.8.0
          */
-        virtual ScrollArea *getScrollArea();
+        void addSelectionListener(SelectionListener* selectionListener);
 
         /**
-         * Sets the ListBox to use.
+         * Removes a selection listener from the drop down.
          *
-         * @param listBox the ListBox to use.
+         * @param selectionListener the selection listener to remove.
+         * @since 0.8.0
          */
-        virtual void setListBox(ListBox* listBox);
-
-        /**
-         * Gets the ListBox used.
-         *
-         * @return the ListBox used.
-         */
-        virtual ListBox *getListBox();
-
-        /**
-         * Adjusts the height of the DropDown fitting it's parents height.
-         */
-        virtual void adjustHeight();
+        void removeSelectionListener(SelectionListener* selectionListener);
 
 
         // Inherited from Widget
-        
+
         virtual void draw(Graphics* graphics);
 
-        virtual void drawBorder(Graphics* graphics);
-        
-        virtual bool _keyInputMessage(const KeyInput& keyInput);
-        
-        virtual void logic();
-        
-        virtual void _mouseInputMessage(const MouseInput &mouseInput);
+        void setBaseColor(const Color& color);
 
-        virtual void lostFocus();
+        void setBackgroundColor(const Color& color);
 
-        virtual void setBaseColor(const Color& color);
+        void setForegroundColor(const Color& color);
 
-        virtual void setBackgroundColor(const Color& color);
+        void setFont(Font *font);
 
-        virtual void setForegroundColor(const Color& color);
+        void setSelectionColor(const Color& color);
 
-        
+
         // Inherited from BasicContainer
 
-        virtual void moveToTop(Widget* widget);
+        virtual Rectangle getChildrenArea();
 
-        virtual void moveToBottom(Widget* widget);
 
-        virtual void _announceDeath(Widget* widget);
+        // Inherited from FocusListener
 
-        virtual void getDrawSize(int& width, int& height, Widget* widget);
+        virtual void focusLost(const Event& event);
 
 
         // Inherited from ActionListener
-        
-        virtual void action(const std::string& eventId);
+
+        virtual void action(const ActionEvent& actionEvent);
+
+
+        // Inherited from DeathListener
+
+        virtual void death(const Event& event);
 
 
         // Inherited from KeyListener
-        
-        virtual bool keyPress(const Key& key);
+
+        virtual void keyPressed(KeyEvent& keyEvent);
 
 
         // Inherited from MouseListener
-        
-        virtual void mousePress(int x, int y, int button);
-    
-        virtual void mouseRelease(int x, int y, int button);    
 
-        virtual void setFont(Font *font);
+        virtual void mousePressed(MouseEvent& mouseEvent);
 
-        virtual bool getDirty() const;
-        
+        virtual void mouseReleased(MouseEvent& mouseEvent);
+
+        virtual void mouseWheelMovedUp(MouseEvent& mouseEvent);
+
+        virtual void mouseWheelMovedDown(MouseEvent& mouseEvent);
+
+        virtual void mouseDragged(MouseEvent& mouseEvent);
+
+
+        // Inherited from SelectionListener
+
+        virtual void valueChanged(const SelectionEvent& event);
+
     protected:
         /**
-         * Draws the button with the little down arrow.
+         * Draws the button of the drop down.
          *
          * @param graphics a Graphics object to draw with.
          */
         virtual void drawButton(Graphics *graphics);
 
         /**
-         * Sets the DropDown Widget to dropped-down mode.
+         * Sets the drop down to be dropped down.
          */
         virtual void dropDown();
 
         /**
-         * Sets the DropDown Widget to folded-up mode.
+         * Sets the drop down to be folded up.
          */
         virtual void foldUp();
-    
+
+        /**
+         * Distributes a value changed event to all selection listeners
+         * of the drop down.
+         *
+         * @since 0.8.0
+         */
+        void distributeValueChangedEvent();
+
+        /**
+         * True if the drop down is dropped down, false otherwise.
+         */
         bool mDroppedDown;
+
+        /**
+         * True if the drop down has been pushed with the mouse, false
+         * otherwise.
+         */
         bool mPushed;
-        int mOldH;
+
+        /**
+         * Holds what the height is if the drop down is folded up. Used when
+         * checking if the list of the drop down was clicked or if the upper
+         * part of the drop down was clicked on a mouse click.
+         */
+        int mFoldedUpHeight;
+
+        /**
+         * The scroll area used.
+         */
         ScrollArea* mScrollArea;
+
+        /**
+         * The list box used.
+         */
         ListBox* mListBox;
-        ScrollArea* mDefaultScrollArea;
-        ListBox* mDefaultListBox;
-        FocusHandler mFocusHandler;    
-    };  
+
+        /**
+         * The internal focus handler used to keep track of focus for the
+         * internal list box.
+         */
+        FocusHandler mInternalFocusHandler;
+
+        /**
+         * True if an internal scroll area is used, false if a scroll area
+         * has been passed to the drop down which the drop down should not
+         * deleted in it's destructor.
+         */
+        bool mInternalScrollArea;
+
+        /**
+         * True if an internal list box is used, false if a list box
+         * has been passed to the drop down which the drop down should not
+         * deleted in it's destructor.
+         */
+        bool mInternalListBox;
+
+        /**
+         * True if the drop down is dragged.
+         */
+        bool mIsDragged;
+
+        /**
+         * Typedef.
+         */
+        typedef std::list<SelectionListener*> SelectionListenerList;
+
+        /**
+         * The selection listener's of the drop down.
+         */
+        SelectionListenerList mSelectionListeners;
+
+        /**
+         * Typedef.
+         */
+        typedef SelectionListenerList::iterator SelectionListenerIterator;
+    };
 }
 
 #endif // end GCN_DROPDOWN_HPP

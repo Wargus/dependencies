@@ -1,59 +1,50 @@
-/*      _______   __   __   __   ______   __   __   _______   __   __                 
- *     / _____/\ / /\ / /\ / /\ / ____/\ / /\ / /\ / ___  /\ /  |\/ /\                
- *    / /\____\// / // / // / // /\___\// /_// / // /\_/ / // , |/ / /                 
- *   / / /__   / / // / // / // / /    / ___  / // ___  / // /| ' / /                  
- *  / /_// /\ / /_// / // / // /_/_   / / // / // /\_/ / // / |  / /                   
- * /______/ //______/ //_/ //_____/\ /_/ //_/ //_/ //_/ //_/ /|_/ /                    
- * \______\/ \______\/ \_\/ \_____\/ \_\/ \_\/ \_\/ \_\/ \_\/ \_\/                      
+/*      _______   __   __   __   ______   __   __   _______   __   __
+ *     / _____/\ / /\ / /\ / /\ / ____/\ / /\ / /\ / ___  /\ /  |\/ /\
+ *    / /\____\// / // / // / // /\___\// /_// / // /\_/ / // , |/ / /
+ *   / / /__   / / // / // / // / /    / ___  / // ___  / // /| ' / /
+ *  / /_// /\ / /_// / // / // /_/_   / / // / // /\_/ / // / |  / /
+ * /______/ //______/ //_/ //_____/\ /_/ //_/ //_/ //_/ //_/ /|_/ /
+ * \______\/ \______\/ \_\/ \_____\/ \_\/ \_\/ \_\/ \_\/ \_\/ \_\/
  *
- * Copyright (c) 2004, 2005 darkbits                        Js_./
- * Per Larsson a.k.a finalman                          _RqZ{a<^_aa
- * Olof Naessén a.k.a jansem/yakslem                _asww7!uY`>  )\a//
- *                                                 _Qhm`] _f "'c  1!5m
- * Visit: http://guichan.darkbits.org             )Qk<P ` _: :+' .'  "{[
- *                                               .)j(] .d_/ '-(  P .   S
- * License: (BSD)                                <Td/Z <fP"5(\"??"\a.  .L
- * Redistribution and use in source and          _dV>ws?a-?'      ._/L  #'
- * binary forms, with or without                 )4d[#7r, .   '     )d`)[
- * modification, are permitted provided         _Q-5'5W..j/?'   -?!\)cam'
- * that the following conditions are met:       j<<WP+k/);.        _W=j f
- * 1. Redistributions of source code must       .$%w\/]Q  . ."'  .  mj$
- *    retain the above copyright notice,        ]E.pYY(Q]>.   a     J@\
- *    this list of conditions and the           j(]1u<sE"L,. .   ./^ ]{a
- *    following disclaimer.                     4'_uomm\.  )L);-4     (3=
- * 2. Redistributions in binary form must        )_]X{Z('a_"a7'<a"a,  ]"[
- *    reproduce the above copyright notice,       #}<]m7`Za??4,P-"'7. ).m
- *    this list of conditions and the            ]d2e)Q(<Q(  ?94   b-  LQ/
- *    following disclaimer in the                <B!</]C)d_, '(<' .f. =C+m
- *    documentation and/or other materials      .Z!=J ]e []('-4f _ ) -.)m]'
- *    provided with the distribution.          .w[5]' _[ /.)_-"+?   _/ <W"
- * 3. Neither the name of Guichan nor the      :$we` _! + _/ .        j?
- *    names of its contributors may be used     =3)= _f  (_yQmWW$#(    "
- *    to endorse or promote products derived     -   W,  sQQQQmZQ#Wwa]..
- *    from this software without specific        (js, \[QQW$QWW#?!V"".
- *    prior written permission.                    ]y:.<\..          .
- *                                                 -]n w/ '         [.
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT       )/ )/           !
- * HOLDERS AND CONTRIBUTORS "AS IS" AND ANY         <  (; sac    ,    '
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING,               ]^ .-  %
- * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF            c <   r
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR            aga<  <La
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE          5%  )P'-3L
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR        _bQf` y`..)a
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,          ,J?4P'.P"_(\?d'.,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES               _Pa,)!f/<[]/  ?"
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT      _2-..:. .r+_,.. .
- * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,     ?a.<%"'  " -'.a_ _,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION)                     ^
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Copyright (c) 2004 - 2008 Olof Naessén and Per Larsson
+ *
+ *
+ * Per Larsson a.k.a finalman
+ * Olof Naessén a.k.a jansem/yakslem
+ *
+ * Visit: http://guichan.sourceforge.net
+ *
+ * License: (BSD)
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of Guichan nor the names of its contributors may
+ *    be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef GCN_LISTBOX_HPP
 #define GCN_LISTBOX_HPP
+
+#include <list>
 
 #include "guichan/keylistener.hpp"
 #include "guichan/listmodel.hpp"
@@ -63,11 +54,18 @@
 
 namespace gcn
 {
+    class SelectionListener;
+
     /**
-     * A ListBox displaying a list in which elemets can be selected. Only one     
-     * element can be selected at time. ListBox uses a ListModel to handle the
-     * list. To be able to use ListBox you must give ListBox an implemented
-     * ListModel which represents your list.
+     * An implementation of a list box where an item can be selected.
+     *
+     * To be able display a list the list box uses a user provided list model.
+     * A list model can be any class that implements the ListModel interface.
+     *
+     * If an item is selected in the list box a select event will be sent to
+     * all selection listeners of the list box. If an item is selected by using
+     * a mouse click or by using the enter or space key an action event will be
+     * sent to all action listeners of the list box.
      */
     class GCN_CORE_DECLSPEC ListBox :
         public Widget,
@@ -83,7 +81,7 @@ namespace gcn
         /**
          * Constructor.
          *
-         * @param listModel the ListModel to use.
+         * @param listModel the list model to use.
          */
         ListBox(ListModel *listModel);
 
@@ -91,63 +89,165 @@ namespace gcn
          * Destructor.
          */
         virtual ~ListBox() { }
-                
-        /**
-         * Gets the ListModel index of the selected element.
-         *
-         * @return the ListModel index of the selected element.
-         */
-        virtual int getSelected();
-    
-        /**
-         * Sets the ListModel index of the selected element.
-         *
-         * @param selected the ListModel index of the selected element.
-         */
-        virtual void setSelected(int selected);
 
         /**
-         * Sets the ListModel to use.
+         * Gets the selected item as an index in the list model.
          *
-         * @param listModel the ListModel to use.
+         * @return the selected item as an index in the list model.
+         * @see setSelected
          */
-        virtual void setListModel(ListModel *listModel);
+        int getSelected() const;
+
+         /**
+         * Sets the selected item. The selected item is represented by
+         * an index from the list model.
+         *
+         * @param selected the selected item as an index from the list model.
+         * @see getSelected
+         */
+        void setSelected(int selected);
 
         /**
-         * Gets the ListModel used.
+         * Sets the list model to use.
          *
-         * @return the ListModel used.
+         * @param listModel the list model to use.
+         * @see getListModel
          */
-        virtual ListModel *getListModel();
+        void setListModel(ListModel *listModel);
 
         /**
-         * Adjusts the size of the ListBox to fit the font used.
+         * Gets the list model used.
+         *
+         * @return the list model used.
+         * @see setListModel
          */
-        virtual void adjustSize();
+        ListModel *getListModel() const;
+
+        /**
+         * Adjusts the size of the list box to fit it's list model.
+         */
+        void adjustSize();
+
+        /**
+         * Checks whether the list box wraps when selecting items with a
+         * keyboard.
+         *
+         * Wrapping means that the selection of items will be wrapped. That is,
+         * if the first item is selected and up is pressed, the last item will
+         * get selected. If the last item is selected and down is pressed, the
+         * first item will get selected.
+         *
+         * @return true if wrapping is enabled, fasle otherwise.
+         * @see setWrappingEnabled
+         */
+        bool isWrappingEnabled() const;
+
+        /**
+         * Sets the list box to wrap or not when selecting items with a
+         * keyboard.
+         *
+         * Wrapping means that the selection of items will be wrapped. That is,
+         * if the first item is selected and up is pressed, the last item will
+         * get selected. If the last item is selected and down is pressed, the
+         * first item will get selected.
+         *
+         * @see isWrappingEnabled
+         */
+        void setWrappingEnabled(bool wrappingEnabled);
+
+        /**
+         * Adds a selection listener to the list box. When the selection
+         * changes an event will be sent to all selection listeners of the
+         * list box.
+         *
+         * If you delete your selection listener, be sure to also remove it
+         * using removeSelectionListener().
+         *
+         * @param selectionListener The selection listener to add.
+         * @since 0.8.0
+         */
+        void addSelectionListener(SelectionListener* selectionListener);
+
+        /**
+         * Removes a selection listener from the list box.
+         *
+         * @param selectionListener The selection listener to remove.
+         * @since 0.8.0
+         */
+        void removeSelectionListener(SelectionListener* selectionListener);
+
+        /**
+         * Gets the height of a row. Should be overridden if another row
+         * height than the font height is preferred.
+         *
+         * @return The height of a row.
+         * @since 0.8.0
+         */
+        virtual unsigned int getRowHeight() const;
 
 
         // Inherited from Widget
 
         virtual void draw(Graphics* graphics);
 
-        virtual void drawBorder(Graphics* graphics);
-        
         virtual void logic();
 
 
         // Inherited from KeyListener
 
-        virtual bool keyPress(const Key& key);
+        virtual void keyPressed(KeyEvent& keyEvent);
 
 
         // Inherited from MouseListener
 
-        virtual void mousePress(int x, int y, int button);
+        virtual void mousePressed(MouseEvent& mouseEvent);
+
+        virtual void mouseWheelMovedUp(MouseEvent& mouseEvent);
+
+        virtual void mouseWheelMovedDown(MouseEvent& mouseEvent);
+
+        virtual void mouseDragged(MouseEvent& mouseEvent);
+
 
     protected:
+        /**
+         * Distributes a value changed event to all selection listeners
+         * of the list box.
+         *
+         * @since 0.8.0
+         */
+        void distributeValueChangedEvent();
+
+        /**
+         * The selected item as an index in the list model.
+         */
+        int mSelected;
+
+        /**
+         * The list model to use.
+         */
         ListModel *mListModel;
-        int mSelected;    
-    };  
+
+        /**
+         * True if wrapping is enabled, false otherwise.
+         */
+        bool mWrappingEnabled;
+
+        /**
+         * Typdef.
+         */
+        typedef std::list<SelectionListener*> SelectionListenerList;
+
+        /**
+         * The selection listeners of the list box.
+         */
+        SelectionListenerList mSelectionListeners;
+
+        /**
+         * Typedef.
+         */
+        typedef SelectionListenerList::iterator SelectionListenerIterator;
+    };
 }
 
 #endif // end GCN_LISTBOX_HPP

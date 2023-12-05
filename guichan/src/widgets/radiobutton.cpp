@@ -1,83 +1,77 @@
-/*      _______   __   __   __   ______   __   __   _______   __   __                 
- *     / _____/\ / /\ / /\ / /\ / ____/\ / /\ / /\ / ___  /\ /  |\/ /\                
- *    / /\____\// / // / // / // /\___\// /_// / // /\_/ / // , |/ / /                 
- *   / / /__   / / // / // / // / /    / ___  / // ___  / // /| ' / /                  
- *  / /_// /\ / /_// / // / // /_/_   / / // / // /\_/ / // / |  / /                   
- * /______/ //______/ //_/ //_____/\ /_/ //_/ //_/ //_/ //_/ /|_/ /                    
- * \______\/ \______\/ \_\/ \_____\/ \_\/ \_\/ \_\/ \_\/ \_\/ \_\/                      
+/*      _______   __   __   __   ______   __   __   _______   __   __
+ *     / _____/\ / /\ / /\ / /\ / ____/\ / /\ / /\ / ___  /\ /  |\/ /\
+ *    / /\____\// / // / // / // /\___\// /_// / // /\_/ / // , |/ / /
+ *   / / /__   / / // / // / // / /    / ___  / // ___  / // /| ' / /
+ *  / /_// /\ / /_// / // / // /_/_   / / // / // /\_/ / // / |  / /
+ * /______/ //______/ //_/ //_____/\ /_/ //_/ //_/ //_/ //_/ /|_/ /
+ * \______\/ \______\/ \_\/ \_____\/ \_\/ \_\/ \_\/ \_\/ \_\/ \_\/
  *
- * Copyright (c) 2004, 2005 darkbits                        Js_./
- * Per Larsson a.k.a finalman                          _RqZ{a<^_aa
- * Olof Naessén a.k.a jansem/yakslem                _asww7!uY`>  )\a//
- *                                                 _Qhm`] _f "'c  1!5m
- * Visit: http://guichan.darkbits.org             )Qk<P ` _: :+' .'  "{[
- *                                               .)j(] .d_/ '-(  P .   S
- * License: (BSD)                                <Td/Z <fP"5(\"??"\a.  .L
- * Redistribution and use in source and          _dV>ws?a-?'      ._/L  #'
- * binary forms, with or without                 )4d[#7r, .   '     )d`)[
- * modification, are permitted provided         _Q-5'5W..j/?'   -?!\)cam'
- * that the following conditions are met:       j<<WP+k/);.        _W=j f
- * 1. Redistributions of source code must       .$%w\/]Q  . ."'  .  mj$
- *    retain the above copyright notice,        ]E.pYY(Q]>.   a     J@\
- *    this list of conditions and the           j(]1u<sE"L,. .   ./^ ]{a
- *    following disclaimer.                     4'_uomm\.  )L);-4     (3=
- * 2. Redistributions in binary form must        )_]X{Z('a_"a7'<a"a,  ]"[
- *    reproduce the above copyright notice,       #}<]m7`Za??4,P-"'7. ).m
- *    this list of conditions and the            ]d2e)Q(<Q(  ?94   b-  LQ/
- *    following disclaimer in the                <B!</]C)d_, '(<' .f. =C+m
- *    documentation and/or other materials      .Z!=J ]e []('-4f _ ) -.)m]'
- *    provided with the distribution.          .w[5]' _[ /.)_-"+?   _/ <W"
- * 3. Neither the name of Guichan nor the      :$we` _! + _/ .        j?
- *    names of its contributors may be used     =3)= _f  (_yQmWW$#(    "
- *    to endorse or promote products derived     -   W,  sQQQQmZQ#Wwa]..
- *    from this software without specific        (js, \[QQW$QWW#?!V"".
- *    prior written permission.                    ]y:.<\..          .
- *                                                 -]n w/ '         [.
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT       )/ )/           !
- * HOLDERS AND CONTRIBUTORS "AS IS" AND ANY         <  (; sac    ,    '
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING,               ]^ .-  %
- * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF            c <   r
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR            aga<  <La
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE          5%  )P'-3L
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR        _bQf` y`..)a
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,          ,J?4P'.P"_(\?d'.,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES               _Pa,)!f/<[]/  ?"
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT      _2-..:. .r+_,.. .
- * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,     ?a.<%"'  " -'.a_ _,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION)                     ^
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Copyright (c) 2004 - 2008 Olof Naessén and Per Larsson
+ *
+ *
+ * Per Larsson a.k.a finalman
+ * Olof Naessén a.k.a jansem/yakslem
+ *
+ * Visit: http://guichan.sourceforge.net
+ *
+ * License: (BSD)
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of Guichan nor the names of its contributors may
+ *    be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
- * For comments regarding functions please see the header file. 
+ * For comments regarding functions please see the header file.
  */
 
 #include "guichan/widgets/radiobutton.hpp"
 
+#include "guichan/font.hpp"
+#include "guichan/graphics.hpp"
+#include "guichan/key.hpp"
+#include "guichan/mouseinput.hpp"
+
 namespace gcn
 {
     RadioButton::GroupMap RadioButton::mGroupMap;
-    
+
     RadioButton::RadioButton()
     {
-        setMarked(false);
+        setSelected(false);
 
         setFocusable(true);
         addMouseListener(this);
-        addKeyListener(this);        
+        addKeyListener(this);
     }
-    
+
     RadioButton::RadioButton(const std::string &caption,
                              const std::string &group,
-                             bool marked)
+                             bool selected)
     {
         setCaption(caption);
         setGroup(group);
-        setMarked(marked);
+        setSelected(selected);
 
         setFocusable(true);
         addMouseListener(this);
@@ -85,80 +79,78 @@ namespace gcn
 
         adjustSize();
     }
-      
+
     RadioButton::~RadioButton()
     {
         // Remove us from the group list
         setGroup("");
     }
-    
+
     void RadioButton::draw(Graphics* graphics)
     {
+        graphics->pushClipArea(Rectangle(1,
+                                         1,
+                                         getWidth() - 1,
+                                         getHeight() - 1));
         drawBox(graphics);
+        graphics->popClipArea();
+
         
         graphics->setFont(getFont());
         graphics->setColor(getForegroundColor());
-    
-        int h = getHeight() + getHeight() / 2;
-        
-        graphics->drawText(getCaption(), h - 2, 0);
-        
-        if (hasFocus())
-        {        
-            graphics->drawRectangle(Rectangle(h - 4, 0, getWidth() - h + 3, getHeight()));
-        }     
-    }
-    
-    void RadioButton::drawBorder(Graphics* graphics)
-    {
-        Color faceColor = getBaseColor();
-        Color highlightColor, shadowColor;
-        int alpha = getBaseColor().a;
-        int width = getWidth() + getBorderSize() * 2 - 1;
-        int height = getHeight() + getBorderSize() * 2 - 1;
-        highlightColor = faceColor + 0x303030;
-        highlightColor.a = alpha;
-        shadowColor = faceColor - 0x303030;
-        shadowColor.a = alpha;
-        
-        unsigned int i;
-        for (i = 0; i < getBorderSize(); ++i)
+
+        if (isFocused())
         {
-            graphics->setColor(shadowColor);
-            graphics->drawLine(i,i, width - i, i);
-            graphics->drawLine(i,i + 1, i, height - i - 1);
-            graphics->setColor(highlightColor);
-            graphics->drawLine(width - i,i + 1, width - i, height - i); 
-            graphics->drawLine(i,height - i, width - i - 1, height - i); 
+            int fh;
+            
+            if (getHeight()%2 == 0)
+            {
+                fh = getHeight() - 4;
+            }
+            else
+            {
+                fh = getHeight() - 3;
+            }
+
+            int hh = (fh + 1) / 2;
+        
+            graphics->drawLine(0, hh + 1, hh + 1, 0);
+            graphics->drawLine(hh + 2, 1, fh + 2, hh + 1);
+            graphics->drawLine(fh + 1, hh + 2, hh + 1, fh + 2);
+            graphics->drawLine(hh + 1, fh + 2, 1, hh + 2);            
         }
+        
+        int h = getHeight() + getHeight() / 2;
+
+        graphics->drawText(getCaption(), h - 2, 0);
     }
-    
+
     void RadioButton::drawBox(Graphics *graphics)
     {
         int h;
 
         if (getHeight()%2 == 0)
         {
-            h = getHeight() - 2;
+            h = getHeight() - 4;
         }
         else
         {
-            h = getHeight() - 1;
+            h = getHeight() - 3;
         }
 
         int alpha = getBaseColor().a;
         Color faceColor = getBaseColor();
-        faceColor.a = alpha;    
+        faceColor.a = alpha;
         Color highlightColor = faceColor + 0x303030;
-        highlightColor.a = alpha;    
-        Color shadowColor = faceColor - 0x303030;      
-        shadowColor.a = alpha;    
+        highlightColor.a = alpha;
+        Color shadowColor = faceColor - 0x303030;
+        shadowColor.a = alpha;
 
         graphics->setColor(getBackgroundColor());
 
         int i;
         int hh = (h + 1) / 2;
-    
+
         for (i = 1; i <= hh; ++i)
         {
             graphics->drawLine(hh - i + 1,
@@ -166,7 +158,7 @@ namespace gcn
                                hh + i - 1,
                                i);
         }
-     
+
         for (i = 1; i < hh; ++i)
         {
             graphics->drawLine(hh - i + 1,
@@ -174,40 +166,40 @@ namespace gcn
                                hh + i - 1,
                                h - i);
         }
-     
+
         graphics->setColor(shadowColor);
         graphics->drawLine(hh, 0, 0, hh);
         graphics->drawLine(hh + 1, 1, h - 1, hh - 1);
-     
+
         graphics->setColor(highlightColor);
         graphics->drawLine(1, hh + 1, hh, h);
         graphics->drawLine(hh + 1, h - 1, h, hh);
-         
+
         graphics->setColor(getForegroundColor());
 
         int hhh = hh - 3;
-        if (isMarked())
+        if (mSelected)
         {
             for (i = 0; i < hhh; ++i)
-            {         
+            {
                 graphics->drawLine(hh - i, 4 + i, hh + i, 4 + i);
             }
             for (i = 0; i < hhh; ++i)
-            {         
+            {
                 graphics->drawLine(hh - i, h - 4 - i, hh + i, h - 4 -  i);
             }
 
         }
     }
-    
-    bool RadioButton::isMarked() const
+
+    bool RadioButton::isSelected() const
     {
-        return mMarked;
+        return mSelected;
     }
-    
-    void RadioButton::setMarked(bool marked)
+
+    void RadioButton::setSelected(bool selected)
     {
-        if (marked && mGroup != "")
+        if (selected && mGroup != "")
         {
             GroupIterator iter, iterEnd;
             iterEnd = mGroupMap.upper_bound(mGroup);
@@ -216,14 +208,14 @@ namespace gcn
                  iter != iterEnd;
                  iter++)
             {
-                if (iter->second->isMarked())
+                if (iter->second->isSelected())
                 {
-                    iter->second->setMarked(false);
+                    iter->second->setSelected(false);
                 }
-            }             
+            }
         }
 
-        mMarked = marked;
+        mSelected = selected;
     }
 
     const std::string &RadioButton::getCaption() const
@@ -234,28 +226,33 @@ namespace gcn
     void RadioButton::setCaption(const std::string caption)
     {
         mCaption = caption;
-        setDirty(true);
     }
 
-    bool RadioButton::keyPress(const Key& key)
+    void RadioButton::keyPressed(KeyEvent& keyEvent)
     {
-        if (key.getValue() == Key::ENTER ||
-            key.getValue() == Key::SPACE)
+        Key key = keyEvent.getKey();
+
+        if (key.getValue() == Key::Enter ||
+            key.getValue() == Key::Space)
         {
-            setMarked(true);
-            generateAction();
-            return true;
-        }    
-        return false;
+            setSelected(true);
+            distributeActionEvent();
+            keyEvent.consume();
+        }
     }
 
-    void RadioButton::mouseClick(int x, int y, int button, int count)
+    void RadioButton::mouseClicked(MouseEvent& mouseEvent)
     {
-        if (button == MouseInput::LEFT)
+        if (mouseEvent.getButton() == MouseEvent::Left)
         {
-            setMarked(true);
-            generateAction();
-        }  
+            setSelected(true);
+            distributeActionEvent();
+        }
+    }
+
+    void RadioButton::mouseDragged(MouseEvent& mouseEvent)
+    {
+        mouseEvent.consume();
     }
 
     void RadioButton::setGroup(const std::string &group)
@@ -274,7 +271,7 @@ namespace gcn
                     mGroupMap.erase(iter);
                     break;
                 }
-            }             
+            }
         }
 
         if (group != "")
@@ -297,5 +294,5 @@ namespace gcn
 
         setHeight(height);
         setWidth(getFont()->getWidth(getCaption()) + height + height/2);
-    }      
+    }
 }

@@ -1,55 +1,44 @@
-/*      _______   __   __   __   ______   __   __   _______   __   __                 
- *     / _____/\ / /\ / /\ / /\ / ____/\ / /\ / /\ / ___  /\ /  |\/ /\                
- *    / /\____\// / // / // / // /\___\// /_// / // /\_/ / // , |/ / /                 
- *   / / /__   / / // / // / // / /    / ___  / // ___  / // /| ' / /                  
- *  / /_// /\ / /_// / // / // /_/_   / / // / // /\_/ / // / |  / /                   
- * /______/ //______/ //_/ //_____/\ /_/ //_/ //_/ //_/ //_/ /|_/ /                    
- * \______\/ \______\/ \_\/ \_____\/ \_\/ \_\/ \_\/ \_\/ \_\/ \_\/                      
+/*      _______   __   __   __   ______   __   __   _______   __   __
+ *     / _____/\ / /\ / /\ / /\ / ____/\ / /\ / /\ / ___  /\ /  |\/ /\
+ *    / /\____\// / // / // / // /\___\// /_// / // /\_/ / // , |/ / /
+ *   / / /__   / / // / // / // / /    / ___  / // ___  / // /| ' / /
+ *  / /_// /\ / /_// / // / // /_/_   / / // / // /\_/ / // / |  / /
+ * /______/ //______/ //_/ //_____/\ /_/ //_/ //_/ //_/ //_/ /|_/ /
+ * \______\/ \______\/ \_\/ \_____\/ \_\/ \_\/ \_\/ \_\/ \_\/ \_\/
  *
- * Copyright (c) 2004, 2005 darkbits                        Js_./
- * Per Larsson a.k.a finalman                          _RqZ{a<^_aa
- * Olof Naessén a.k.a jansem/yakslem                _asww7!uY`>  )\a//
- *                                                 _Qhm`] _f "'c  1!5m
- * Visit: http://guichan.darkbits.org             )Qk<P ` _: :+' .'  "{[
- *                                               .)j(] .d_/ '-(  P .   S
- * License: (BSD)                                <Td/Z <fP"5(\"??"\a.  .L
- * Redistribution and use in source and          _dV>ws?a-?'      ._/L  #'
- * binary forms, with or without                 )4d[#7r, .   '     )d`)[
- * modification, are permitted provided         _Q-5'5W..j/?'   -?!\)cam'
- * that the following conditions are met:       j<<WP+k/);.        _W=j f
- * 1. Redistributions of source code must       .$%w\/]Q  . ."'  .  mj$
- *    retain the above copyright notice,        ]E.pYY(Q]>.   a     J@\
- *    this list of conditions and the           j(]1u<sE"L,. .   ./^ ]{a
- *    following disclaimer.                     4'_uomm\.  )L);-4     (3=
- * 2. Redistributions in binary form must        )_]X{Z('a_"a7'<a"a,  ]"[
- *    reproduce the above copyright notice,       #}<]m7`Za??4,P-"'7. ).m
- *    this list of conditions and the            ]d2e)Q(<Q(  ?94   b-  LQ/
- *    following disclaimer in the                <B!</]C)d_, '(<' .f. =C+m
- *    documentation and/or other materials      .Z!=J ]e []('-4f _ ) -.)m]'
- *    provided with the distribution.          .w[5]' _[ /.)_-"+?   _/ <W"
- * 3. Neither the name of Guichan nor the      :$we` _! + _/ .        j?
- *    names of its contributors may be used     =3)= _f  (_yQmWW$#(    "
- *    to endorse or promote products derived     -   W,  sQQQQmZQ#Wwa]..
- *    from this software without specific        (js, \[QQW$QWW#?!V"".
- *    prior written permission.                    ]y:.<\..          .
- *                                                 -]n w/ '         [.
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT       )/ )/           !
- * HOLDERS AND CONTRIBUTORS "AS IS" AND ANY         <  (; sac    ,    '
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING,               ]^ .-  %
- * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF            c <   r
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR            aga<  <La
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE          5%  )P'-3L
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR        _bQf` y`..)a
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,          ,J?4P'.P"_(\?d'.,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES               _Pa,)!f/<[]/  ?"
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT      _2-..:. .r+_,.. .
- * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,     ?a.<%"'  " -'.a_ _,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION)                     ^
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Copyright (c) 2004 - 2008 Olof Naessén and Per Larsson
+ *
+ *
+ * Per Larsson a.k.a finalman
+ * Olof Naessén a.k.a jansem/yakslem
+ *
+ * Visit: http://guichan.sourceforge.net
+ *
+ * License: (BSD)
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of Guichan nor the names of its contributors may
+ *    be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef GCN_WINDOW_HPP
@@ -57,15 +46,16 @@
 
 #include <string>
 
+#include "guichan/mouselistener.hpp"
 #include "guichan/platform.hpp"
-#include "guichan/basiccontainer.hpp"
+#include "guichan/widgets/container.hpp"
 
 namespace gcn
 {
     /**
-     * A movable window which can conatin another Widget.
+     * An implementation of a movable window that can contain other widgets.
      */
-    class GCN_CORE_DECLSPEC Window : public BasicContainer,
+    class GCN_CORE_DECLSPEC Window : public Container,
                                      public MouseListener
     {
     public:
@@ -75,199 +65,191 @@ namespace gcn
         Window();
 
         /**
-         * Constructor.
+         * Constructor. The window will be automatically resized in height
+         * to fit the caption.
          *
-         * @param caption the Window caption.
+         * @param caption the caption of the window.
          */
         Window(const std::string& caption);
-
-        /**
-         * Constructor.
-         *
-         * @param content the content Widget.
-         * @param caption the Window caption.
-         */
-        Window(Widget* content, const std::string& caption = "");
 
         /**
          * Destructor.
          */
         virtual ~Window();
-    
-        /**
-         * Sets the Window caption.
-         *
-         * @param caption the Window caption.
-         */
-        virtual void setCaption(const std::string& caption);
-        
-        /**
-         * Gets the Window caption.
-         *
-         * @return the Window caption.
-         */
-        virtual const std::string& getCaption() const;
 
         /**
-         * Sets the alignment for the caption.
+         * Sets the caption of the window.
          *
-         * @param alignemnt Graphics::LEFT, Graphics::CENTER or Graphics::RIGHT.
+         * @param caption The caption of the window.
+         * @see getCaption
          */
-        virtual void setAlignment(unsigned int alignment);
+        void setCaption(const std::string& caption);
 
         /**
-         * Gets the alignment for the caption.
+         * Gets the caption of the window.
          *
-         * @return alignment of caption.
+         * @return the caption of the window.
+         * @see setCaption
          */
-        virtual unsigned int getAlignment() const;
-        
-        /**
-         * Sets the content Widget.
-         *
-         * @param widget the contant Widget.
-         */
-        virtual void setContent(Widget* widget);
+        const std::string& getCaption() const;
 
         /**
-         * Gets the content Widget.
+         * Sets the alignment of the caption.
          *
-         * @return the contant Widget.
+         * @param alignment The alignment of the caption.
+         * @see getAlignment, Graphics
          */
-        virtual Widget* getContent() const;
+        void setAlignment(Graphics::Alignment alignment);
 
         /**
-         * Sets the padding of the window which is the distance between the
+         * Gets the alignment of the caption.
+         *
+         * @return The alignment of caption.
+         * @see setAlignment, Graphics
+         */
+        Graphics::Alignment getAlignment() const;
+
+        /**
+         * Sets the padding of the window. The padding is the distance between the
          * window border and the content.
          *
-         * @param padding the padding value.
+         * @param padding The padding of the window.
+         * @see getPadding
          */
-        virtual void setPadding(unsigned int padding);
+        void setPadding(unsigned int padding);
 
         /**
-         * Gets the padding.
+         * Gets the padding of the window. The padding is the distance between the
+         * window border and the content.
          *
-         * @return the padding value.
+         * @return The padding of the window.
+         * @see setPadding
          */
-        virtual unsigned int getPadding() const;
+        unsigned int getPadding() const;
 
         /**
          * Sets the title bar height.
          *
-         * @param title the title height value.
-         */      
-        virtual void setTitleBarHeight(unsigned int height);
+         * @param height The title height value.
+         * @see getTitleBarHeight
+         */
+        void setTitleBarHeight(unsigned int height);
 
         /**
          * Gets the title bar height.
          *
-         * @return the title bar height.
+         * @return The title bar height.
+         * @see setTitleBarHeight
          */
-        virtual unsigned int getTitleBarHeight();
+        unsigned int getTitleBarHeight() const;
 
         /**
-         * Sets the Window to be moveble.
+         * Sets the window to be moveble or not.
          *
-         * @param movable true or false.
-         */    
-        virtual void setMovable(bool movable);
+         * @param movable True if the window should be movable, false otherwise.
+         * @see isMovable
+         */
+        void setMovable(bool movable);
 
         /**
-         * Check if the window is movable.
+         * Checks if the window is movable.
          *
-         * @return true or false.
-         */    
-        virtual bool isMovable() const;
+         * @return True if the window is movable, false otherwise.
+         * @see setMovable
+         */
+        bool isMovable() const;
+
+        /**
+         * Sets the window to be opaque or not. An opaque window will draw it's background
+         * and it's content. A non opaque window will only draw it's content.
+         *
+         * @param opaque True if the window should be opaque, false otherwise.
+         * @see isOpaque
+         */
+        void setOpaque(bool opaque);
+
+        /**
+         * Checks if the window is opaque.
+         *
+         * @return True if the window is opaque, false otherwise.
+         * @see setOpaque
+         */
+        bool isOpaque() const;
 
         /**
          * Resizes the window to fit the content.
          */
         virtual void resizeToContent();
 
-        /**
-         * Sets the Window to be opaque. If it's not opaque, the content area
-         * will not be filled with a color.
-         *
-         * @param opaque true or false.
-         */
-        virtual void setOpaque(bool opaque);
 
-        /**
-         * Checks if the Window is opaque.
-         *
-         * @return true or false.
-         */
-        virtual bool isOpaque();
-        
-        /**
-         * Draws the content of the Window. This functions uses the
-         * getContentDimension to determin where to draw the content.
-         *
-         * @param graphics a Graphics object to draw with.
-         */
-        virtual void drawContent(Graphics* graphics);
-        
-        
         // Inherited from BasicContainer
 
-        virtual void moveToTop(Widget* widget);
+        virtual Rectangle getChildrenArea();
 
-        virtual void moveToBottom(Widget* widget);
 
-        virtual void getDrawSize(int& width, int& height, Widget* widget);
-
-        virtual void _announceDeath(Widget *widget);      
-    
-    
         // Inherited from Widget
-        
+
         virtual void draw(Graphics* graphics);
 
-        virtual void drawBorder(Graphics* graphics);            
 
-        virtual void logic();
-        
-        virtual void _mouseInputMessage(const MouseInput &mouseInput);
-    
-        virtual void _mouseOutMessage();
-    
-        virtual void _setFocusHandler(FocusHandler* focusHandler);
-        
-    
-        // Inherited from MouseListener     
+        // Inherited from MouseListener
 
-        virtual void mousePress(int x, int y, int button);
+        virtual void mousePressed(MouseEvent& mouseEvent);
 
-        virtual void mouseRelease(int x, int y, int button);
+        virtual void mouseDragged(MouseEvent& mouseEvent);
 
-        virtual void mouseMotion(int x, int y);
-    
-        virtual void setDirty(bool dirty);
-        virtual bool getDirty() const;
+        virtual void mouseReleased(MouseEvent& mouseEvent);
 
     protected:
         /**
-         * Moves the content to the top left corner of the window,
-         * uses getContentDimension to get the offset
+         * Holds the caption of the window.
          */
-        virtual void repositionContent();
+        std::string mCaption;
 
         /**
-         * Gets the area in the window that the content occupies.
+         * Holds the alignment of the caption.
          */
-        virtual Rectangle getContentDimension();
-    
-        std::string mCaption;
-        unsigned int mAlignment;
-        Widget* mContent;
+        Graphics::Alignment mAlignment;
+
+        /**
+         * Holds the padding of the window.
+         */ 
         unsigned int mPadding;
+
+        /**
+         * Holds the title bar height of the window.
+         */
         unsigned int mTitleBarHeight;
-        bool mMouseDrag;
-        int mMouseXOffset;
-        int mMouseYOffset;
+
+        /**
+         * True if the window is movable, false otherwise.
+         */
         bool mMovable;
-        bool mOpaque;    
-    };  
+
+        /**
+         * True if the window is opaque, false otherwise.
+         */
+        bool mOpaque;
+
+        /**
+         * Holds a drag offset as an x coordinate where the drag of the window
+         * started if the window is being dragged. It's used to move the window 
+         * correctly when dragged.
+         */
+        int mDragOffsetX;
+
+        /**
+         * Holds a drag offset as an y coordinate where the drag of the window
+         * started if the window is being dragged. It's used to move the window 
+         * correctly when dragged.
+         */
+        int mDragOffsetY;
+
+        /**
+         * True if the window is being moved, false otherwise.
+         */
+        bool mMoved;
+    };
 }
 
 #endif // end GCN_WINDOW_HPP
