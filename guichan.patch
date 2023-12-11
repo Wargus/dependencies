@@ -299,11 +299,15 @@ index 752f5be..cc9ffbb 100644
          }
      #else
 diff --git a/guichan/src/sdl/sdlinput.cpp b/guichan/src/sdl/sdlinput.cpp
-index 1bb426f..0639452 100644
+index 1bb426f..d18fc04 100644
 --- a/guichan/src/sdl/sdlinput.cpp
 +++ b/guichan/src/sdl/sdlinput.cpp
-@@ -51,6 +51,43 @@
+@@ -49,8 +49,47 @@
  
+ #include "guichan/exception.hpp"
+ 
++#include <cstdint>
++
  namespace gcn
  {
 +    //--------------------------------------------------------------------------
@@ -346,7 +350,7 @@ index 1bb426f..0639452 100644
      SDLInput::SDLInput()
      {
          mMouseInWindow = true;
-@@ -104,6 +141,17 @@ namespace gcn
+@@ -104,6 +143,17 @@ namespace gcn
  
          switch (event.type)
          {
@@ -364,7 +368,7 @@ index 1bb426f..0639452 100644
            case SDL_KEYDOWN:
            {
                int value = convertSDLEventToGuichanKeyValue(event);
-@@ -129,7 +177,11 @@ namespace gcn
+@@ -129,7 +179,11 @@ namespace gcn
  
                                       && event.key.keysym.sym <= SDLK_KP_EQUALS);
  
@@ -378,10 +382,10 @@ index 1bb426f..0639452 100644
            }
  
 diff --git a/guichan/src/widgets/button.cpp b/guichan/src/widgets/button.cpp
-index b3349d9..b5e2d9b 100644
+index b3349d9..7b6930d 100644
 --- a/guichan/src/widgets/button.cpp
 +++ b/guichan/src/widgets/button.cpp
-@@ -205,7 +205,7 @@ namespace gcn
+@@ -205,12 +205,15 @@ namespace gcn
          }
          else
          {
@@ -390,7 +394,15 @@ index b3349d9..b5e2d9b 100644
          }
      }
  
-@@ -265,6 +265,7 @@ namespace gcn
+     void Button::mousePressed(MouseEvent& mouseEvent)
+     {
++        int widgetX, widgetY;
++        getAbsolutePosition(widgetX, widgetY);
++        mHasMouse = getDimension().isContaining(widgetX + mouseEvent.getX(), widgetY + mouseEvent.getY());
+         if (mouseEvent.isConsumed())
+         {
+             return;
+@@ -265,6 +268,7 @@ namespace gcn
              mKeyPressed = true;
              keyEvent.consume();
          }
@@ -398,7 +410,7 @@ index b3349d9..b5e2d9b 100644
      }
  
      void Button::keyReleased(KeyEvent& keyEvent)
-@@ -281,6 +282,21 @@ namespace gcn
+@@ -281,6 +285,21 @@ namespace gcn
          }
      }
  
