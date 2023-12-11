@@ -49,6 +49,8 @@
 
 #include "guichan/exception.hpp"
 
+#include <cstdint>
+
 namespace gcn
 {
     //--------------------------------------------------------------------------
