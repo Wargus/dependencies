@@ -260,7 +260,7 @@ index da440c7..d81b2d8 100644
              // tabbing is enable check for tab press and
              // change focus.
 diff --git a/guichan/src/key.cpp b/guichan/src/key.cpp
-index 70e9652..7a3f532 100644
+index 70e9652..6c2c19f 100644
 --- a/guichan/src/key.cpp
 +++ b/guichan/src/key.cpp
 @@ -74,6 +74,11 @@ namespace gcn
@@ -382,10 +382,10 @@ index 1bb426f..d18fc04 100644
            }
  
 diff --git a/guichan/src/widgets/button.cpp b/guichan/src/widgets/button.cpp
-index b3349d9..7b6930d 100644
+index b3349d9..ab963a4 100644
 --- a/guichan/src/widgets/button.cpp
 +++ b/guichan/src/widgets/button.cpp
-@@ -205,12 +205,15 @@ namespace gcn
+@@ -205,12 +205,13 @@ namespace gcn
          }
          else
          {
@@ -396,13 +396,11 @@ index b3349d9..7b6930d 100644
  
      void Button::mousePressed(MouseEvent& mouseEvent)
      {
-+        int widgetX, widgetY;
-+        getAbsolutePosition(widgetX, widgetY);
-+        mHasMouse = getDimension().isContaining(widgetX + mouseEvent.getX(), widgetY + mouseEvent.getY());
++        mHasMouse = gcn::Rectangle(0, 0, getWidth(), getHeight()).isContaining(mouseEvent.getX(), mouseEvent.getY());
          if (mouseEvent.isConsumed())
          {
              return;
-@@ -265,6 +268,7 @@ namespace gcn
+@@ -265,6 +266,7 @@ namespace gcn
              mKeyPressed = true;
              keyEvent.consume();
          }
@@ -410,7 +408,7 @@ index b3349d9..7b6930d 100644
      }
  
      void Button::keyReleased(KeyEvent& keyEvent)
-@@ -281,6 +285,21 @@ namespace gcn
+@@ -281,6 +283,21 @@ namespace gcn
          }
      }
  

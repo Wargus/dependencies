@@ -211,9 +211,7 @@ namespace gcn
 
     void Button::mousePressed(MouseEvent& mouseEvent)
     {
-        int widgetX, widgetY;
-        getAbsolutePosition(widgetX, widgetY);
-        mHasMouse = getDimension().isContaining(widgetX + mouseEvent.getX(), widgetY + mouseEvent.getY());
+        mHasMouse = gcn::Rectangle(0, 0, getWidth(), getHeight()).isContaining(mouseEvent.getX(), mouseEvent.getY());
         if (mouseEvent.isConsumed())
         {
             return;
