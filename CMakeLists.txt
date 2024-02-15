@@ -534,7 +534,7 @@ macro(vendored_guichan)
     ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/textfield.hpp
     ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include/guichan/widgets/window.hpp
   )
-  add_library(guichan_lib ${guichan_SRCS} ${guichan_HDRS})
+  add_library(guichan_lib STATIC ${guichan_SRCS} ${guichan_HDRS})
   target_include_directories(guichan_lib SYSTEM PUBLIC ${CMAKE_CURRENT_MACRO_LIST_DIR}/guichan/include ${SDL2_INCLUDE_DIR})
   if (BUILD_VENDORED_SDL)
     add_dependencies(guichan_lib SDL2)
