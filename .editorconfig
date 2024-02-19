@@ -1,2 +1,5 @@
-# top-most EditorConfig file
+# do not go up to parent folder
 root = true
+
+# no settings in here
+# the subfolders have different configuration needs
