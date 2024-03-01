@@ -65,6 +65,21 @@ index 7685558..bc02f79 100644
      protected:
          /**
           * Constructor.
+diff --git a/guichan/include/guichan/sdl/sdlpixel.hpp b/guichan/include/guichan/sdl/sdlpixel.hpp
+index 49686eb..4838742 100644
+--- a/guichan/include/guichan/sdl/sdlpixel.hpp
++++ b/guichan/include/guichan/sdl/sdlpixel.hpp
+@@ -165,8 +165,9 @@ namespace gcn
+         unsigned int b = ((src & 0xff) * a + (dst & 0xff) * (255 - a)) >> 8;
+         unsigned int g = ((src & 0xff00) * a + (dst & 0xff00) * (255 - a)) >> 8;
+         unsigned int r = ((src & 0xff0000) * a + (dst & 0xff0000) * (255 - a)) >> 8;
++        unsigned int alpha = ((src >> 24) * a + (dst >> 24) * (255 - a)) >> 8;
+ 
+-        return (b & 0xff) | (g & 0xff00) | (r & 0xff0000);
++        return (b & 0xff) | (g & 0xff00) | (r & 0xff0000) | (a << 24);
+     }
+ 
+     /**
 diff --git a/guichan/include/guichan/widget.hpp b/guichan/include/guichan/widget.hpp
 index f303752..e692faf 100644
 --- a/guichan/include/guichan/widget.hpp
