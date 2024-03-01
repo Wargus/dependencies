@@ -165,8 +165,9 @@ namespace gcn
         unsigned int b = ((src & 0xff) * a + (dst & 0xff) * (255 - a)) >> 8;
         unsigned int g = ((src & 0xff00) * a + (dst & 0xff00) * (255 - a)) >> 8;
         unsigned int r = ((src & 0xff0000) * a + (dst & 0xff0000) * (255 - a)) >> 8;
+        unsigned int alpha = ((src >> 24) * a + (dst >> 24) * (255 - a)) >> 8;
 
-        return (b & 0xff) | (g & 0xff00) | (r & 0xff0000);
+        return (b & 0xff) | (g & 0xff00) | (r & 0xff0000) | (a << 24);
     }
 
     /**
