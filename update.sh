@@ -17,6 +17,7 @@ REPOS=(
     "https://github.com/mjansson/mdns" "1.1" ""
     "https://github.com/oo13/spiritless_po" "e2d9835d061c6f660bcd8afb90ea5b8b981ba4a5" ""
     "https://github.com/wheybags/guichan" "46a5f58b577ad398ad51e6015261f690352edfe3" "" # master 0.9.0
+    "https://github.com/kallisti5/guisan" "v1.1.0" ""
 )
 
 for i in `seq 0 3 ${#REPOS[@]}`; do
