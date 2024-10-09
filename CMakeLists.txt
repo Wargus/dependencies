@@ -540,3 +540,69 @@ macro(vendored_guichan)
     add_dependencies(guichan_lib SDL2)
   endif()
 endmacro()
+
+macro(vendored_guisan)
+  set(guisan_SRCS
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/actionevent.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/cliprectangle.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/color.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/containerevent.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/defaultfont.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/event.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/exception.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/focushandler.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/font.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/genericinput.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/graphics.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/gui.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/guisan.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/image.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/imagefont.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/inputevent.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/key.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/keyevent.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/keyinput.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/mouseevent.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/mouseinput.cpp
+    #${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/opengl/opengl.cpp
+    #${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/opengl/openglgraphics.cpp
+    #${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/opengl/openglimage.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/rectangle.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/selectionevent.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/text.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/sdl/sdl.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/sdl/sdl2graphics.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/sdl/sdlgraphics.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/sdl/sdlimage.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/sdl/sdlimageloader.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/sdl/sdlinput.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/sdl/sdltruetypefont.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widget.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/button.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/checkbox.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/container.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/dropdown.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/icon.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/imagebutton.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/imagetextbutton.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/inputbox.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/label.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/listbox.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/messagebox.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/progressbar.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/radiobutton.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/scrollarea.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/slider.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/tab.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/tabbedarea.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/textbox.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/textfield.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/togglebutton.cpp
+    ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/window.cpp
+  )
+  add_library(guisan_lib STATIC ${guisan_SRCS})
+  target_include_directories(guisan_lib SYSTEM PUBLIC ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/include ${SDL2_INCLUDE_DIR})
+  if (BUILD_VENDORED_SDL)
+    add_dependencies(guisan_lib SDL2)
+  endif()
+endmacro()
