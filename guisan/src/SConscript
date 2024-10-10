@@ -1,0 +1,134 @@
+import os
+import sys
+import platform
+
+Import("env")
+
+main_sources = [
+	'actionevent.cpp',
+	'cliprectangle.cpp',
+	'color.cpp',
+	'containerevent.cpp',
+	'defaultfont.cpp',
+	'event.cpp',
+	'exception.cpp',
+	'focushandler.cpp',
+	'font.cpp',
+	'genericinput.cpp',
+	'graphics.cpp',
+	'gui.cpp',
+	'guisan.cpp',
+	'image.cpp',
+	'imagefont.cpp',
+	'inputevent.cpp',
+	'key.cpp',
+	'keyevent.cpp',
+	'keyinput.cpp',
+	'mouseevent.cpp',
+	'mouseinput.cpp',
+	'rectangle.cpp',
+	'text.cpp',
+	'selectionevent.cpp',
+	'widget.cpp'
+]
+
+widget_sources = [
+	'widgets/button.cpp',
+	'widgets/checkbox.cpp',
+	'widgets/container.cpp',
+	'widgets/dropdown.cpp',
+	'widgets/icon.cpp',
+	'widgets/imagebutton.cpp',
+	'widgets/imagetextbutton.cpp',
+	'widgets/inputbox.cpp',
+	'widgets/label.cpp',
+	'widgets/listbox.cpp',
+	'widgets/messagebox.cpp',
+	'widgets/progressbar.cpp',
+	'widgets/radiobutton.cpp',
+	'widgets/scrollarea.cpp',
+	'widgets/slider.cpp',
+	'widgets/tab.cpp',
+	'widgets/tabbedarea.cpp',
+	'widgets/textbox.cpp',
+	'widgets/textfield.cpp',
+	'widgets/togglebutton.cpp',
+	'widgets/window.cpp',
+]
+
+
+if env['HAVE_SDL2']:
+	sdl_sources = [
+		'sdl/sdl.cpp',
+		'sdl/sdlgraphics.cpp',
+		'sdl/sdl2graphics.cpp',
+		'sdl/sdlimage.cpp',
+		'sdl/sdlimageloader.cpp',
+		'sdl/sdlinput.cpp',
+		'sdl/sdltruetypefont.cpp'
+	]
+else:
+	sdl_sources = []
+
+if env['HAVE_OPENGL']:
+	opengl_sources = [
+		'opengl/opengl.cpp',
+		'opengl/openglgraphics.cpp',
+		'opengl/openglimage.cpp'
+	]
+else:
+	opengl_sources = []
+
+
+program_sources = [
+	main_sources +
+	widget_sources +
+	sdl_sources +
+	opengl_sources
+]
+
+guisan = env.Clone()
+
+if env['HAVE_SDL2']:
+	guisan.ParseConfig('pkg-config --cflags --libs sdl2')
+	guisan.ParseConfig('pkg-config --cflags --libs SDL2_image')
+if env['HAVE_SDL2_TTF']:
+	guisan.ParseConfig('pkg-config --cflags --libs SDL2_ttf')
+
+if env['HAVE_OPENGL']:
+	guisan.Append(LIBS = ['GL', 'GLU'])
+
+print("=========================================")
+print(" Guisan build")
+print("")
+print(" SDL 2.0 support.............. " + str(env['HAVE_SDL2']))
+print(" SDL 2.0 TTF support..........." + str(env['HAVE_SDL2_TTF']))
+print(" OpenGL support............... " + str(env['HAVE_OPENGL']))
+print("-----------------------------------------")
+print(" Installation target")
+print("")
+print(" Prefix....................... " + str(env['PREFIX_PATH']))
+print(" Includes..................... " + str(env['INCLUDE_PATH']))
+print(" Libraries.................... " + str(env['LIB_PATH']))
+print("")
+print("=========================================")
+
+guisan.StaticLibrary(target = 'guisan', source = program_sources)
+
+pkgconfig = open(str("guisan.pc"), "w")
+pkgconfig.write("prefix=%s\n" % env["PREFIX_PATH"])
+pkgconfig.write("includedir=%s\n" % env["INCLUDE_PATH"])
+pkgconfig.write("libdir=%s\n" % env["LIB_PATH"])
+pkgconfig.write("Name: guisan\n")
+pkgconfig.write("Description: SDL2 Windowing Library\n")
+pkgconfig.write("Version: %s\n" % env["LIBVER"])
+pkgconfig.write("Cflags: -I${includedir}/guisan\n")
+
+pkglibs = "-lguisan"
+for lib in guisan["LIBS"]:
+	pkglibs += " -l%s" % lib
+
+pkgconfig.write("Libs: -L${libdir} %s\n" % pkglibs)
+pkgconfig.close()
+
+Export('guisan')

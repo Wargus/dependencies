@@ -1,0 +1,78 @@
+Import('*')
+
+### SDL 2D Examples
+if env['HAVE_SDL2']:
+	sdlhelloworld = env.Clone()
+	sdlhelloworld.ParseConfig('pkg-config --cflags --libs sdl2')
+	sdlhelloworld.ParseConfig('pkg-config --cflags --libs SDL2_image')
+	sdlhelloworld.ParseConfig('pkg-config --cflags --libs SDL2_ttf')
+	sdlhelloworld.Prepend(LIBS = 'guisan')
+	sdlhelloworld.Program(
+		target = 'sdlhelloworld',
+		source = ['sdlhelloworld.cpp']
+	)
+	
+	sdlwidgets = env.Clone()
+	sdlwidgets.ParseConfig('pkg-config --cflags --libs sdl2')
+	sdlwidgets.ParseConfig('pkg-config --cflags --libs SDL2_image')
+	sdlwidgets.ParseConfig('pkg-config --cflags --libs SDL2_ttf')
+	sdlwidgets.Prepend(LIBS = 'guisan')
+	sdlwidgets.Program(
+		target = 'sdlwidgets',
+		source = ['sdlwidgets.cpp']
+	)
+	
+	sdl2widgets = env.Clone()
+	sdl2widgets.ParseConfig('pkg-config --cflags --libs sdl2')
+	sdl2widgets.ParseConfig('pkg-config --cflags --libs SDL2_image')
+	sdl2widgets.ParseConfig('pkg-config --cflags --libs SDL2_ttf')
+	sdl2widgets.Prepend(LIBS = 'guisan')
+	sdl2widgets.Program(
+		target = 'sdl2widgets',
+		source = ['sdl2widgets.cpp']
+	)
+
+	sdlaction = env.Clone()
+	sdlaction.ParseConfig('pkg-config --cflags --libs sdl2')
+	sdlaction.ParseConfig('pkg-config --cflags --libs SDL2_image')
+	sdlaction.ParseConfig('pkg-config --cflags --libs SDL2_ttf')
+	sdlaction.Prepend(LIBS = 'guisan')
+	sdlaction.Program(
+		target = 'sdlaction',
+		source = ['sdlaction.cpp']
+	)
+	
+	sdlrickroll = env.Clone()
+	sdlrickroll.ParseConfig('pkg-config --cflags --libs sdl2')
+	sdlrickroll.ParseConfig('pkg-config --cflags --libs SDL2_image')
+	sdlrickroll.ParseConfig('pkg-config --cflags --libs SDL2_ttf')
+	sdlrickroll.Prepend(LIBS = 'guisan')
+	sdlrickroll.Program(
+		target = 'sdlrickroll',
+		source = ['sdlrickroll.cpp']
+	)
+	
+### SDL 3D Examples
+if env['HAVE_OPENGL'] and env['HAVE_SDL2']:
+
+	openglhelloworld= env.Clone()
+	openglhelloworld.ParseConfig('pkg-config --cflags --libs gl')
+	openglhelloworld.ParseConfig('pkg-config --cflags --libs sdl2')
+	openglhelloworld.ParseConfig('pkg-config --cflags --libs SDL2_image')
+	openglhelloworld.ParseConfig('pkg-config --cflags --libs SDL2_ttf')
+	openglhelloworld.Prepend(LIBS = 'guisan')
+	openglhelloworld.Program(
+		target = 'openglhelloworld',
+		source = ['openglhelloworld.cpp']
+	)
+	
+	openglwidgets= env.Clone()
+	openglwidgets.ParseConfig('pkg-config --cflags --libs gl')
+	openglwidgets.ParseConfig('pkg-config --cflags --libs sdl2')
+	openglwidgets.ParseConfig('pkg-config --cflags --libs SDL2_image')
+	openglwidgets.ParseConfig('pkg-config --cflags --libs SDL2_ttf')
+	openglwidgets.Prepend(LIBS = 'guisan')
+	openglwidgets.Program(
+		target = 'openglwidgets',
+		source = ['openglwidgets.cpp']
+	)
