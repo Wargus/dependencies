@@ -1,6 +1,6 @@
 /*
   SDL_mixer:  An audio mixer library based on the SDL library
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -265,8 +265,7 @@ static int DRFLAC_GetSome(void *context, void *data, int bytes, SDL_bool *done)
 
     if (music->loop_flag) {
         if (!drflac_seek_to_pcm_frame(music->dec, music->loop_start)) {
-            SDL_SetError("drflac_seek_to_pcm_frame() failed");
-            return -1;
+            return Mix_SetError("drflac_seek_to_pcm_frame() failed");
         } else {
             int play_count = -1;
             if (music->play_count > 0) {
@@ -281,7 +280,7 @@ static int DRFLAC_GetSome(void *context, void *data, int bytes, SDL_bool *done)
     if (amount > 0) {
         if (music->loop && (music->play_count != 1) &&
             ((Sint64)music->dec->currentPCMFrame >= music->loop_end)) {
-            amount -= (music->dec->currentPCMFrame - music->loop_end) * sizeof(drflac_int16) * music->channels;
+            amount -= (music->dec->currentPCMFrame - music->loop_end);
             music->loop_flag = SDL_TRUE;
         }
         if (SDL_AudioStreamPut(music->stream, music->buffer, (int)amount * sizeof(drflac_int16) * music->channels) < 0) {
@@ -409,6 +408,8 @@ Mix_MusicInterface Mix_MusicInterface_DRFLAC =
     DRFLAC_LoopEnd,
     DRFLAC_LoopLength,
     DRFLAC_GetMetaTag,
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     NULL,   /* Pause */
     NULL,   /* Resume */
     DRFLAC_Stop,

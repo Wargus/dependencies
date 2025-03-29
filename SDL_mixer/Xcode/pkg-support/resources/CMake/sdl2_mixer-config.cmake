@@ -19,13 +19,15 @@ set(SDL2MIXER_CMD                   FALSE)
 set(SDL2MIXER_FLAC_LIBFLAC          FALSE)
 set(SDL2MIXER_FLAC_DRFLAC           TRUE)
 
+set(SDL2MIXER_GME                   FALSE)
+
 set(SDL2MIXER_MOD                   FALSE)
 set(SDL2MIXER_MOD_MODPLUG           FALSE)
 set(SDL2MIXER_MOD_XMP               FALSE)
 set(SDL2MIXER_MOD_XMP_LITE          FALSE)
 
 set(SDL2MIXER_MP3                   TRUE)
-set(SDL2MIXER_MP3_DRMP3             TRUE)
+set(SDL2MIXER_MP3_MINIMP3           TRUE)
 set(SDL2MIXER_MP3_MPG123            FALSE)
 
 set(SDL2MIXER_MIDI                  FALSE)

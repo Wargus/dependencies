@@ -37,12 +37,14 @@ jobs:
           ${{ matrix.platform.msys-env }}-autotools
           ${{ matrix.platform.msys-env }}-cmake
           ${{ matrix.platform.msys-env }}-gcc
-          ${{ matrix.platform.msys-env }}-mpg123
           ${{ matrix.platform.msys-env }}-flac
-          ${{ matrix.platform.msys-env }}-libmodplug
           ${{ matrix.platform.msys-env }}-fluidsynth
+          ${{ matrix.platform.msys-env }}-libgme
           ${{ matrix.platform.msys-env }}-libvorbis
+          ${{ matrix.platform.msys-env }}-libxmp
+          ${{ matrix.platform.msys-env }}-mpg123
           ${{ matrix.platform.msys-env }}-opusfile
+          ${{ matrix.platform.msys-env }}-wavpack
           ${{ matrix.platform.msys-env }}-ninja
           ${{ matrix.platform.msys-env }}-pkg-config
     - name: Setup Macos dependencies
@@ -53,14 +55,14 @@ jobs:
           autoconf \
           automake \
           libtool \
-          ninja \
-          pkg-config \
-          mpg123 \
           flac \
-          libmodplug \
           fluidsynth \
+          game-music-emu \
           libvorbis \
+          libxmp \
+          mpg123 \
           opusfile \
+          wavpack \
           ${NULL+}
     - name: Setup Linux dependencies
       if: runner.os == 'Linux'
@@ -71,16 +73,17 @@ jobs:
           automake \
           cmake \
           libsdl2-dev \
-          libmpg123-dev \
           libflac-dev \
-          libmodplug-dev \
           libfluidsynth-dev \
-          libvorbis-dev \
+          libgme-dev \
+          libmpg123-dev \
           libopusfile-dev \
-          ninja-build \
+          libvorbis-dev \
+          libxmp-dev \
+          libwavpack-dev \
           pkg-config \
           ${NULL+}
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -97,10 +100,8 @@ jobs:
         echo "${{ github.workspace }}" >> $Env:GITHUB_PATH
         echo "::endgroup::"
     - name: Setup Ninja for MSVC
-      if: "matrix.platform.msvc"
-      uses: ashutoshvarma/setup-ninja@master
-      with:
-        version: 1.10.2
+      if: ${{ !contains(matrix.platform.shell, 'msys2') }}
+      uses: aseprite/get-ninja@main
     - uses: ilammy/msvc-dev-cmd@v1
       if: "matrix.platform.msvc"
       with:
@@ -109,13 +110,8 @@ jobs:
     - name: Check that versioning is consistent
       # We only need to run this once: arbitrarily use the Linux/CMake build
       if: "runner.os == 'Linux' && matrix.platform.cmake"
-      run: ./test-versioning.sh
+      run: ./build-scripts/test-versioning.sh
 
-    - name: Setup (CMake)
-      if: ${{ matrix.platform.cmake && !matrix.platform.msystem && !matrix.platform.msvc }}
-      uses: jwlawson/actions-setup-cmake@v1.12
-      with:
-        cmake-version: '3.16'
     - name: Configure (CMake)
       if: "matrix.platform.cmake"
       run: |
@@ -124,10 +120,11 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DSDL2MIXER_FLAC=ON \
           -DSDL2MIXER_FLAC_LIBFLAC=ON \
-          -DSDL2MIXER_VORBIS=VORBISFILE \
-          -DSDL2MIXER_OPUS=ON \
+          -DSDL2MIXER_GME=ON \
+          -DSDL2MIXER_MOD_XMP=ON \
           -DSDL2MIXER_MP3_MPG123=ON \
-          -DSDL2MIXER_MOD_MODPLUG=ON \
+          -DSDL2MIXER_OPUS=ON \
+          -DSDL2MIXER_VORBIS=VORBISFILE \
           -DCMAKE_INSTALL_PREFIX=prefix_cmake \
           ${NULL+}
         

@@ -19,16 +19,24 @@ SUPPORT_OGG ?= false
 OGG_LIBRARY_PATH := external/ogg
 VORBIS_LIBRARY_PATH := external/tremor
 
-# Enable this if you want to support loading MP3 music via dr_mp3
-SUPPORT_MP3_DRMP3 ?= true
+# Enable this if you want to support loading MP3 music via MINIMP3
+SUPPORT_MP3_MINIMP3 ?= true
 
 # Enable this if you want to support loading MP3 music via MPG123
 SUPPORT_MP3_MPG123 ?= false
 MPG123_LIBRARY_PATH := external/mpg123
 
-# Enable this if you want to support loading MOD music via modplug
-SUPPORT_MOD_MODPLUG ?= false
-MODPLUG_LIBRARY_PATH := external/libmodplug
+# Enable this if you want to support loading WavPack music via libwavpack
+SUPPORT_WAVPACK ?= true
+WAVPACK_LIBRARY_PATH := external/wavpack
+
+# Enable this if you want to support loading music via libgme
+SUPPORT_GME ?= true
+GME_LIBRARY_PATH := external/libgme
+
+# Enable this if you want to support loading MOD music via XMP-lite
+SUPPORT_MOD_XMP ?= false
+XMP_LIBRARY_PATH := external/libxmp
 
 # Enable this if you want to support TiMidity
 SUPPORT_MID_TIMIDITY ?= false
@@ -52,8 +60,18 @@ ifeq ($(SUPPORT_MP3_MPG123),true)
 endif
 
 # Build the library
-ifeq ($(SUPPORT_MOD_MODPLUG),true)
-    include $(SDL_MIXER_LOCAL_PATH)/$(MODPLUG_LIBRARY_PATH)/Android.mk
+ifeq ($(SUPPORT_WAVPACK),true)
+    include $(SDL_MIXER_LOCAL_PATH)/$(WAVPACK_LIBRARY_PATH)/Android.mk
+endif
+
+# Build the library
+ifeq ($(SUPPORT_GME),true)
+    include $(SDL_MIXER_LOCAL_PATH)/$(GME_LIBRARY_PATH)/Android.mk
+endif
+
+# Build the library
+ifeq ($(SUPPORT_MOD_XMP),true)
+    include $(SDL_MIXER_LOCAL_PATH)/$(XMP_LIBRARY_PATH)/Android.mk
 endif
 
 # Build the library
@@ -111,22 +129,31 @@ ifeq ($(SUPPORT_OGG),true)
     LOCAL_STATIC_LIBRARIES += ogg vorbisidec
 endif
 
-ifeq ($(SUPPORT_MP3_DRMP3),true)
-    LOCAL_CFLAGS += -DMUSIC_MP3_DRMP3
+ifeq ($(SUPPORT_MP3_MINIMP3),true)
+    LOCAL_CFLAGS += -DMUSIC_MP3_MINIMP3
 endif
 
 # This needs to be a shared library to comply with the LGPL license
 ifeq ($(SUPPORT_MP3_MPG123),true)
-    LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(MPG123_LIBRARY_PATH)
+    LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(MPG123_LIBRARY_PATH)/android
     LOCAL_CFLAGS += -DMUSIC_MP3_MPG123
     LOCAL_SHARED_LIBRARIES += mpg123
 endif
 
-ifeq ($(SUPPORT_MOD_MODPLUG),true)
-    LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(MODPLUG_LIBRARY_PATH)/src
-    LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(MODPLUG_LIBRARY_PATH)/src/libmodplug
-    LOCAL_CFLAGS += -DMUSIC_MOD_MODPLUG -DMODPLUG_HEADER="<modplug.h>"
-    LOCAL_STATIC_LIBRARIES += modplug
+ifeq ($(SUPPORT_WAVPACK),true)
+    LOCAL_CFLAGS += -DMUSIC_WAVPACK -DMUSIC_WAVPACK_DSD -DWAVPACK_HEADER=\"../external/wavpack/include/wavpack.h\"
+    LOCAL_STATIC_LIBRARIES += wavpack
+endif
+
+ifeq ($(SUPPORT_GME),true)
+    LOCAL_CFLAGS += -DMUSIC_GME
+    LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(GME_LIBRARY_PATH)
+    LOCAL_STATIC_LIBRARIES += libgme
+endif
+
+ifeq ($(SUPPORT_MOD_XMP),true)
+    LOCAL_CFLAGS += -DMUSIC_MOD_XMP -DLIBXMP_HEADER=\"../external/libxmp/include/xmp.h\"
+    LOCAL_STATIC_LIBRARIES += xmp
 endif
 
 ifeq ($(SUPPORT_MID_TIMIDITY),true)

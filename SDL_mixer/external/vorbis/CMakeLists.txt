@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 2.8.12...3.5)
 project(vorbis)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -28,8 +28,8 @@ set(PROJECT_VERSION_MINOR ${CMAKE_MATCH_2})
 set(PROJECT_VERSION_PATCH ${CMAKE_MATCH_3})
 set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 
-# Helper function to get version-info
-function(get_version_info result current_var_name age_var_name revision_var_name)
+# Helper function to get library versions
+function(get_lib_versions version_result soversion_result current_var_name age_var_name revision_var_name)
     string(REGEX MATCH "${current_var_name}=([0-9]*)" DUMMY ${CONFIGURE_AC_CONTENTS})
     set(VERSION_INFO_CURRENT ${CMAKE_MATCH_1})
 
@@ -41,7 +41,8 @@ function(get_version_info result current_var_name age_var_name revision_var_name
 
     math(EXPR VERSION_INFO_CURRENT_MINUS_AGE "${VERSION_INFO_CURRENT} - ${VERSION_INFO_AGE}")
 
-    set(${result} "${VERSION_INFO_CURRENT_MINUS_AGE}.${VERSION_INFO_AGE}.${VERSION_INFO_REVISION}" PARENT_SCOPE)
+    set(${version_result} "${VERSION_INFO_CURRENT_MINUS_AGE}.${VERSION_INFO_AGE}.${VERSION_INFO_REVISION}" PARENT_SCOPE)
+    set(${soversion_result} "${VERSION_INFO_CURRENT_MINUS_AGE}" PARENT_SCOPE)
 endfunction()
 
 # Helper function to configure pkg-config files

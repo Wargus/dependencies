@@ -29,12 +29,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "config.h"
 #endif
 
+typedef int prevent_empty_translation_unit_warning;
+
 #include "debug.h"
+
+#if SILK_DEBUG || SILK_TIC_TOC
 #include "SigProc_FIX.h"
+#endif
 
 #if SILK_TIC_TOC
-
-#ifdef _WIN32
 
 #if (defined(_WIN32) || defined(_WINCE))
 #include <windows.h>    /* timer */
@@ -42,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/time.h>
 #endif
 
+#ifdef _WIN32
 unsigned long silk_GetHighResolutionTime(void) /* O  time in usec*/
 {
     /* Returns a time counter in microsec   */
