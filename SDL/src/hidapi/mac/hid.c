@@ -21,6 +21,8 @@
  ********************************************************/
 #include "../../SDL_internal.h"
 
+#include "SDL_hints.h"
+
 /* See Apple Technical Note TN2187 for details on IOHidManager. */
 
 #include <IOKit/hid/IOHIDManager.h>
@@ -34,6 +36,9 @@
 #include "../hidapi/hidapi.h"
 
 #define VALVE_USB_VID		0x28DE
+
+/* As defined in AppKit.h, but we don't need the entire AppKit for a single constant. */
+extern const double NSAppKitVersionNumber;
 
 /* Barrier implementation because Mac OSX doesn't have pthread_barrier.
  It also doesn't have clock_gettime(). So much for POSIX and SUSv2.
@@ -129,6 +134,7 @@ struct hid_device_list_node
 };
 
 static 	IOHIDManagerRef hid_mgr = 0x0;
+static int is_macos_10_10_or_greater = 0;
 static 	struct hid_device_list_node *device_list = 0x0;
 
 static hid_device *new_hid_device(void)
@@ -156,11 +162,12 @@ static hid_device *new_hid_device(void)
 
 static void free_hid_device(hid_device *dev)
 {
+	struct input_report *rpt;
 	if (!dev)
 		return;
 	
 	/* Delete any input reports still left over. */
-	struct input_report *rpt = dev->input_reports;
+	rpt = dev->input_reports;
 	while (rpt) {
 		struct input_report *next = rpt->next;
 		free(rpt->data);
@@ -260,14 +267,12 @@ static int get_string_property(IOHIDDeviceRef device, CFStringRef prop, wchar_t 
 	buf[0] = 0;
 	
 	if (str && CFGetTypeID(str) == CFStringGetTypeID()) {
-		len --;
-		
-		CFIndex str_len = CFStringGetLength(str);
+		CFIndex used_buf_len, chars_copied;
 		CFRange range;
+		CFIndex str_len = CFStringGetLength(str);
+		len --;
 		range.location = 0;
 		range.length = (str_len > len)? len: str_len;
-		CFIndex used_buf_len;
-		CFIndex chars_copied;
 		chars_copied = CFStringGetBytes(str,
 										range,
 										kCFStringEncodingUTF32LE,
@@ -299,14 +304,12 @@ static int get_string_property_utf8(IOHIDDeviceRef device, CFStringRef prop, cha
 	buf[0] = 0;
 	
 	if (str && CFGetTypeID(str) == CFStringGetTypeID()) {
-		len--;
-		
-		CFIndex str_len = CFStringGetLength(str);
+		CFIndex used_buf_len, chars_copied;
 		CFRange range;
+		CFIndex str_len = CFStringGetLength(str);
+		len--;
 		range.location = 0;
 		range.length = (str_len > len)? len: str_len;
-		CFIndex used_buf_len;
-		CFIndex chars_copied;
 		chars_copied = CFStringGetBytes(str,
 										range,
 										kCFStringEncodingUTF8,
@@ -486,6 +489,7 @@ static int init_hid_manager(void)
 int HID_API_EXPORT hid_init(void)
 {
 	if (!hid_mgr) {
+		is_macos_10_10_or_greater = (NSAppKitVersionNumber >= 1343); /* NSAppKitVersionNumber10_10 */
 		return init_hid_manager();
 	}
 	
@@ -505,7 +509,7 @@ int HID_API_EXPORT hid_exit(void)
 	return 0;
 }
 
-static void process_pending_events() {
+static void process_pending_events(void) {
 	SInt32 res;
 	do {
 		res = CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.001, FALSE);
@@ -517,7 +521,10 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 	struct hid_device_info *root = NULL; // return object
 	struct hid_device_info *cur_dev = NULL;
 	CFIndex num_devices;
+	CFSetRef device_set;
+	IOHIDDeviceRef *device_array;
 	int i;
+	const char *hint = SDL_GetHint(SDL_HINT_HIDAPI_IGNORE_DEVICES);
 	
 	/* Set up the HID Manager if it hasn't been done */
 	if (hid_init() < 0)
@@ -527,7 +534,7 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 	process_pending_events();
 	
 	/* Get a list of the Devices */
-	CFSetRef device_set = IOHIDManagerCopyDevices(hid_mgr);
+	device_set = IOHIDManagerCopyDevices(hid_mgr);
 	if (!device_set)
 		return NULL;
 
@@ -537,7 +544,7 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 		CFRelease(device_set);
 		return NULL;
 	}
-	IOHIDDeviceRef *device_array = (IOHIDDeviceRef*)calloc(num_devices, sizeof(IOHIDDeviceRef));
+	device_array = (IOHIDDeviceRef*)calloc(num_devices, sizeof(IOHIDDeviceRef));
 	CFSetGetValues(device_set, (const void **) device_array);
 	
 	/* Iterate over each device, making an entry for it. */	
@@ -568,9 +575,19 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 		dev_vid = get_vendor_id(dev);
 		dev_pid = get_product_id(dev);
 		
+		/* See if there are any devices we should skip in enumeration */
+		if (hint) {
+			char vendor_match[16], product_match[16];
+			SDL_snprintf(vendor_match, sizeof(vendor_match), "0x%.4x/0x0000", dev_vid);
+			SDL_snprintf(product_match, sizeof(product_match), "0x%.4x/0x%.4x", dev_vid, dev_pid);
+			if (SDL_strcasestr(hint, vendor_match) || SDL_strcasestr(hint, product_match)) {
+				continue;
+			}
+		}
+
 		/* Check the VID/PID against the arguments */
-		if ((vendor_id == 0x0 && product_id == 0x0) ||
-		    (vendor_id == dev_vid && product_id == dev_pid)) {
+		if ((vendor_id == 0x0 || dev_vid == vendor_id) &&
+		    (product_id == 0x0 || dev_pid == product_id)) {
 			struct hid_device_info *tmp;
 
 			/* VID/PID match. Create the record. */
@@ -733,13 +750,14 @@ static void perform_signal_callback(void *context)
 static void *read_thread(void *param)
 {
 	hid_device *dev = (hid_device *)param;
+	CFRunLoopSourceContext ctx;
+    SInt32 code;
 	
 	/* Move the device's run loop to this thread. */
 	IOHIDDeviceScheduleWithRunLoop(dev->device_handle, CFRunLoopGetCurrent(), dev->run_loop_mode);
 	
 	/* Create the RunLoopSource which is used to signal the
 	 event loop to stop when hid_close() is called. */
-	CFRunLoopSourceContext ctx;
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.version = 0;
 	ctx.info = dev;
@@ -756,11 +774,10 @@ static void *read_thread(void *param)
 	
 	/* Run the Event Loop. CFRunLoopRunInMode() will dispatch HID input
 	 reports into the hid_report_callback(). */
-	SInt32 code;
 	while (!dev->shutdown_thread && !dev->disconnected) {
 		code = CFRunLoopRunInMode(dev->run_loop_mode, 1000/*sec*/, FALSE);
 		/* Return if the device has been disconnected */
-		if (code == kCFRunLoopRunFinished) {
+		if (code == kCFRunLoopRunFinished || code == kCFRunLoopRunStopped) {
 			dev->disconnected = 1;
 			break;
 		}
@@ -796,23 +813,29 @@ static void *read_thread(void *param)
 
 hid_device * HID_API_EXPORT hid_open_path(const char *path, int bExclusive)
 {
-  	int i;
+	int i;
 	hid_device *dev = NULL;
 	CFIndex num_devices;
-	
+	CFSetRef device_set;
+	IOHIDDeviceRef *device_array;
+
 	dev = new_hid_device();
 	
 	/* Set up the HID Manager if it hasn't been done */
 	if (hid_init() < 0)
 		return NULL;
-	
+
+#if 0 /* We have a path because the IOHIDManager is already updated */
 	/* give the IOHIDManager a chance to update itself */
 	process_pending_events();
-	
-	CFSetRef device_set = IOHIDManagerCopyDevices(hid_mgr);
+#endif
+
+	device_set = IOHIDManagerCopyDevices(hid_mgr);
+	if (!device_set)
+		return NULL;
 	
 	num_devices = CFSetGetCount(device_set);
-	IOHIDDeviceRef *device_array = (IOHIDDeviceRef *)calloc(num_devices, sizeof(IOHIDDeviceRef));
+	device_array = (IOHIDDeviceRef *)calloc(num_devices, sizeof(IOHIDDeviceRef));
 	CFSetGetValues(device_set, (const void **) device_array);	
 	for (i = 0; i < num_devices; i++) {
 		char cbuf[BUF_LEN];
@@ -824,6 +847,7 @@ hid_device * HID_API_EXPORT hid_open_path(const char *path, int bExclusive)
 			IOReturn ret = IOHIDDeviceOpen(os_dev, kIOHIDOptionsTypeNone);
 			if (ret == kIOReturnSuccess) {
 				char str[32];
+				struct hid_device_list_node *node;
 				
 				free(device_array);
 				CFRelease(device_set);
@@ -836,7 +860,7 @@ hid_device * HID_API_EXPORT hid_open_path(const char *path, int bExclusive)
 				
 				/* Create the Run Loop Mode for this device.
 				 printing the reference seems to work. */
-				sprintf(str, "HIDAPI_%p", os_dev);
+				snprintf(str, sizeof(str), "HIDAPI_%p", os_dev);
 				dev->run_loop_mode = 
 				CFStringCreateWithCString(NULL, str, kCFStringEncodingASCII);
 				
@@ -845,7 +869,7 @@ hid_device * HID_API_EXPORT hid_open_path(const char *path, int bExclusive)
 													   os_dev, dev->input_report_buf, dev->max_input_report_len,
 													   &hid_report_callback, dev);
 
-				struct hid_device_list_node *node = (struct hid_device_list_node *)calloc(1, sizeof(struct hid_device_list_node));
+				node = (struct hid_device_list_node *)calloc(1, sizeof(struct hid_device_list_node));
 				node->dev = dev;
 				node->next = device_list;
 				device_list = node;
@@ -938,7 +962,9 @@ static int return_data(hid_device *dev, unsigned char *data, size_t length)
 	size_t len = 0;
 	if (rpt != NULL) {
 		len = (length < rpt->len)? length: rpt->len;
-		memcpy(data, rpt->data, len);
+		if (data != NULL) {
+			memcpy(data, rpt->data, len);
+		}
 		dev->input_reports = rpt->next;
 		free(rpt->data);
 		free(rpt);
@@ -1083,13 +1109,13 @@ int HID_API_EXPORT hid_get_feature_report(hid_device *dev, unsigned char *data, 
 {
 	CFIndex len = length;
 	IOReturn res;
-	
+	int skipped_report_id = 0, report_number;
+
 	/* Return if the device has been unplugged. */
 	if (dev->disconnected)
 		return -1;
 	
-	int skipped_report_id = 0;
-	int report_number = data[0];
+	report_number = data[0];
 	if (report_number == 0x0) {
 		/* Offset the return buffer by 1, so that the report ID
 		 will remain in byte 0. */
@@ -1117,8 +1143,10 @@ void HID_API_EXPORT hid_close(hid_device *dev)
 	if (!dev)
 		return;
 	
-	/* Disconnect the report callback before close. */
-	if (!dev->disconnected) {
+   /* Disconnect the report callback before close.
+      See comment below.
+   */
+   if (is_macos_10_10_or_greater || !dev->disconnected) {
 		IOHIDDeviceRegisterInputReportCallback(
 											   dev->device_handle, dev->input_report_buf, dev->max_input_report_len,
 											   NULL, dev);
@@ -1141,8 +1169,14 @@ void HID_API_EXPORT hid_close(hid_device *dev)
 	
 	/* Close the OS handle to the device, but only if it's not
 	 been unplugged. If it's been unplugged, then calling
-	 IOHIDDeviceClose() will crash. */
-	if (!dev->disconnected) {
+      IOHIDDeviceClose() will crash.
+
+      UPD: The crash part was true in/until some version of macOS.
+      Starting with macOS 10.15, there is an opposite effect in some environments:
+      crash happenes if IOHIDDeviceClose() is not called.
+      Not leaking a resource in all tested environments.
+   */
+   if (is_macos_10_10_or_greater || !dev->disconnected) {
 		IOHIDDeviceClose(dev->device_handle, kIOHIDOptionsTypeNone);
 	}
 	
