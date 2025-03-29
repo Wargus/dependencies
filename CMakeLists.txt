@@ -601,7 +601,7 @@ macro(vendored_guisan)
     ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/src/widgets/window.cpp
   )
   add_library(guisan_lib STATIC ${guisan_SRCS})
-  target_include_directories(guisan_lib SYSTEM PUBLIC ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/include ${SDL2_INCLUDE_DIR})
+  target_include_directories(guisan_lib SYSTEM PUBLIC ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/include ${SDL2_INCLUDE_DIR} ${SDL2_IMAGE_INCLUDE_DIRS})
   if (BUILD_VENDORED_SDL)
     add_dependencies(guisan_lib SDL2)
   endif()
