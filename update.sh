@@ -5,9 +5,9 @@
 # if a patch file exists with the same name as the repo, it is applied on update
 
 REPOS=(
-    "https://github.com/libsdl-org/SDL.git" "release-2.0.22" "test"
-    "https://github.com/libsdl-org/SDL_image.git" "release-2.6.1" "external/libjxl external/dav1d external/libtiff external/libwebp external/libavif"
-    "https://github.com/libsdl-org/SDL_mixer.git" "release-2.6.1" "external/flac external/mpg123 exernal/opus"
+    "https://github.com/libsdl-org/SDL.git" "release-2.32.2" "test"
+    "https://github.com/libsdl-org/SDL_image.git" "release-2.8.8" "external/libjxl external/dav1d external/libtiff external/libwebp external/libavif"
+    "https://github.com/libsdl-org/SDL_mixer.git" "release-2.8.1" "external/flac external/mpg123 exernal/opus"
     "https://github.com/xiph/theora.git" "v1.1.1" ""
     "https://github.com/LuaDist/bzip2.git" "1.0.5" "manual.ps manual.pdf"
     "https://github.com/LuaDist/lcms.git" "1.19" "python "
