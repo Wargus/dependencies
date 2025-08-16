@@ -2,7 +2,7 @@
 this is to avoid breaking existing make and auto make support
 but still have the option to use CMake with only lists at one place]]
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.5)
 
 function(get_library_version OPUS_LIBRARY_VERSION OPUS_LIBRARY_VERSION_MAJOR)
   file(STRINGS configure.ac opus_lt_current_string

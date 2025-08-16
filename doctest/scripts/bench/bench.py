@@ -154,7 +154,7 @@ f.close()
 
 # the cmake file
 f = open('CMakeLists.txt', 'w')
-f.write('cmake_minimum_required(VERSION 2.8)\n\n')
+f.write('cmake_minimum_required(VERSION 3.5)\n\n')
 f.write('project(bench)\n\n')
 f.write('if(NOT MSVC)\n')
 f.write('set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")\n')
