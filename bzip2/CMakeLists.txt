@@ -4,8 +4,8 @@
 # For details see the COPYRIGHT file distributed with LuaDist.
 # Please note that the package source code is licensed under its own license.
 
+CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
 PROJECT(bzip2 C)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 INCLUDE(dist.cmake)
 
 ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64)
@@ -46,4 +46,3 @@ INSTALL(PROGRAMS bzmore DESTINATION ${INSTALL_BIN} RENAME bzless)
 INSTALL(PROGRAMS bzdiff DESTINATION ${INSTALL_BIN} RENAME bzcmp)
 
 #~2DO? build manual.ps and manual.pdf
-
