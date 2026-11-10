@@ -10,7 +10,7 @@ REPOS=(
     "https://github.com/libsdl-org/SDL_mixer.git" "release-2.6.1" "external/flac external/mpg123 exernal/opus"
     "https://github.com/xiph/theora.git" "v1.1.1" ""
     "https://github.com/LuaDist/bzip2.git" "1.0.5" "manual.ps manual.pdf"
-    "https://github.com/LuaDist/lcms.git" "1.19" "python "
+    "https://github.com/LuaDist/lcms.git" "1.19" "python " # last lcms 1.x release, libmng needs the lcms1 api; patched for swab() removal (lcms.patch)
     "https://github.com/LuaDist/libmng.git" "1.0.10" ""
     "https://github.com/psi29a/unsf.git" "c5e5a8c" ""
     "https://github.com/doctest/doctest.git" "v2.4.11" ""

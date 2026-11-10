@@ -36,9 +36,10 @@ static int GlobalLanguageCode;   // Language & country descriptors, for ICC 4.0 
 static int GlobalCountryCode;
 
                            
-#ifdef __BEOS__
-#       define USE_CUSTOM_SWAB  1
-#endif
+// swab() was removed from POSIX.1-2008 and its declaration is gone from
+// modern libc headers (glibc >= 2.40), while an implicit declaration is a
+// hard error since C23. Always use the portable replacement shipped below.
+#define USE_CUSTOM_SWAB  1
 
 
 #ifdef USE_CUSTOM_SWAB
