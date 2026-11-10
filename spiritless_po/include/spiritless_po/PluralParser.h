@@ -1,7 +1,7 @@
 /** Plural forms information parser.
     \file PluralParser.h
     \author OOTA, Masato
-    \copyright Copyright © 2019, 2022 OOTA, Masato
+    \copyright Copyright © 2019, 2022, 2026 OOTA, Masato
     \par License Boost
     \parblock
       This program is distributed under the Boost Software License Version 1.0.
@@ -14,8 +14,10 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cctype>
+#include <cstdint>
 #include <iterator>
+#include <limits>
+#include <locale>
 #include <stdexcept>
 #include <string>
 #include <map>
@@ -45,12 +47,12 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
         typedef unsigned long int NumT;
 
         /** Parse a plural form information.
-            \param [in] plural_form_info A plural form information.
-            \return The pair of the number of the plurals and the function to calculate the plural expression.
+            \param [in] plural The value of plural in the metadata.
+            \return The function to calculate the plural expression.
 
-            This function parses a plural form information, such as "Plural-Forms: nplurals=2; plural=n != 1;". The result is the pair of 2 and the equivalent to [](NumT n) -> NumT { return n != 1; }.
+            This function parses a plural form information, such as "n != 1". The result is a function, such as [](NumT n) -> NumT { return n != 1; }.
         */
-        static std::pair<NumT, FunctionType> Parse(const std::string &plural_form_info);
+        static FunctionType Parse(const std::string &plural_expression);
 
 
         /** The iterator type for the plural form information. */
@@ -132,12 +134,13 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
                          size_t max_data_size);
             explicit FunctionType(CompiledPluralFunctionT func);
 
-            NumT Read32(size_t &i) const;
+            static std::uint_fast32_t Equivalent32bitUint(NumT n);
+            std::uint_fast32_t Read32(size_t &i) const;
 
         private:
             CompiledPluralFunctionT compiled_func;
             std::vector<PluralParser::Opcode> code;
-            mutable std::vector<PluralParser::NumT> data;
+            mutable std::vector<std::uint_fast32_t> data;
         };
 
 
@@ -147,7 +150,6 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
 
         static void SkipSpaces(InP &it, InP end);
         static NumT GetNumber(InP &it, InP end);
-        static std::pair<InP, InP> GetExpression(InP it, InP end, const std::string &keyword);
         FunctionType CreatePluralFunction();
         static FunctionType ParseExpression(InP &it, InP end);
         void PushOpcode(Opcode op, InP it);
@@ -158,17 +160,11 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
         void ParseTerm7(InP &it, InP end);
         void ParseTerm71(InP &it, InP end);
         void ParseTerm6(InP &it, InP end);
-        void ParseTerm61(InP &it, InP end);
         void ParseTerm5(InP &it, InP end);
-        void ParseTerm51(InP &it, InP end);
         void ParseTerm4(InP &it, InP end);
-        void ParseTerm41(InP &it, InP end);
         void ParseTerm3(InP &it, InP end);
-        void ParseTerm31(InP &it, InP end);
         void ParseTerm2(InP &it, InP end);
-        void ParseTerm21(InP &it, InP end);
         void ParseTerm1(InP &it, InP end);
-        void ParseTerm11(InP &it, InP end);
         void ParseTerm0(InP &it, InP end);
         void ParseValue(InP &it, InP end);
 
@@ -183,6 +179,7 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
             NUM,
             NUM32,
             NOT,
+            BOOL,
             MULT,
             DIV,
             MOD,
@@ -242,6 +239,9 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
             break;
         case NOT:
             std::cout << "NOT";
+            break;
+        case BOOL:
+            std::cout << "BOOL";
             break;
         case MULT:
             std::cout << "MULT";
@@ -339,7 +339,7 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
 
 
     inline PluralParser::FunctionType::FunctionType()
-        : FunctionType([](NumT) -> NumT { return 0; })
+        : FunctionType([](NumT n) -> NumT { return n!=1; })
     {
     }
 
@@ -361,7 +361,18 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
     {
     }
 
-    inline PluralParser::NumT PluralParser::FunctionType::Read32(size_t &i) const
+    // cf. https://www.gnu.org/software/gettext/manual/html_node/Plural-forms.html
+    inline std::uint_fast32_t PluralParser::FunctionType::Equivalent32bitUint(NumT n)
+    {
+        if (std::numeric_limits<NumT>::max() > 0xFFFFFFFF) {
+            if (n > 0xFFFFFFFF) {
+                n = n % 1000000 + 1000000;
+            }
+        }
+        return n;
+    }
+
+    inline std::uint_fast32_t PluralParser::FunctionType::Read32(size_t &i) const
     {
         NumT n = code[i];
         n <<= 8;
@@ -382,6 +393,7 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
 #ifdef SPIRITLESS_PO_DEBUG_PLURAL_PARSER_PRINT_EXECUTE
         PluralParser::DebugPrintCode(code);
 #endif
+        const std::uint_fast32_t n32 = Equivalent32bitUint(n);
         size_t top = static_cast<size_t>(-1);
         for (size_t i = 0; i < code.size() && code[i] != END; ++i) {
 #ifdef SPIRITLESS_PO_DEBUG_PLURAL_PARSER_PRINT_EXECUTE
@@ -402,6 +414,9 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
                 break;
             case NOT:
                 data[top] = !data.at(top);
+                break;
+            case BOOL:
+                data[top] = data.at(top) != 0;
                 break;
             case MULT:
                 data.at(top - 1) *= data.at(top);
@@ -482,7 +497,7 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
                 break;
             case VAR:
                 ++top;
-                data.at(top) = n;
+                data.at(top) = n32;
                 break;
             default:
                 assert(false);
@@ -514,18 +529,11 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
 
 
     // Plural forms information parser.
-    inline std::pair<PluralParser::NumT, PluralParser::FunctionType>
-    PluralParser::Parse(const std::string &plural_exp)
+    inline PluralParser::FunctionType
+    PluralParser::Parse(const std::string &plural_expression)
     {
-        const InP begin = plural_exp.cbegin();
-        const InP end = plural_exp.cend();
-        auto npluralsRange = GetExpression(begin, end, "nplurals");
-        const NumT nplurals = GetNumber(npluralsRange.first, npluralsRange.second);
-
-        auto pluralRange = GetExpression(begin, end, "plural");
-        const auto f = ParseExpression(pluralRange.first, pluralRange.second);
-
-        return std::make_pair(nplurals, f);
+        auto begin = plural_expression.begin();
+        return ParseExpression(begin, plural_expression.cend());
     }
 
 
@@ -533,7 +541,8 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
     // Skip spaces (Utility function)
     inline void PluralParser::SkipSpaces(InP &it, const InP end)
     {
-        while (it != end && std::isspace(static_cast<unsigned char>(*it))) {
+        // GNU gettext tools seem to skip only ' ' and '\t'.
+        while (it != end && (*it == ' ' || *it == '\t')) {
             ++it;
         }
     }
@@ -542,38 +551,13 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
     inline PluralParser::NumT PluralParser::GetNumber(InP &it, const InP end)
     {
         std::string s;
-        while (it != end && std::isdigit(static_cast<unsigned char>(*it))) {
+        while (it != end && std::isdigit(*it, std::locale::classic())) {
             s += *it++;
         }
         if (!s.empty()) {
             return std::stoi(s);
         }
         throw ExpressionError("Parse error: '0'..'9' is expected.", it);
-    }
-
-    // get a expression. (Utility function)
-    inline std::pair<PluralParser::InP, PluralParser::InP>
-    PluralParser::GetExpression(const InP begin, const InP end, const std::string &keyword)
-    {
-        auto curIt = std::find_end(begin, end, keyword.cbegin(), keyword.cend());
-        if (curIt == end) {
-            throw ExpressionError("Parse error: '" + keyword + "' is not found.", begin);
-        }
-        std::advance(curIt, keyword.length());
-        SkipSpaces(curIt, end);
-        if (*curIt != '=') {
-            throw ExpressionError("'=' is expected.", curIt);
-        }
-        ++curIt;
-        SkipSpaces(curIt, end);
-        const InP find_pos = curIt;
-        while (curIt != end && *curIt != ';') {
-            ++curIt;
-        }
-        if (*curIt != ';') {
-            throw ExpressionError("';' is expected.", curIt);
-        }
-        return std::make_pair(find_pos, curIt);
     }
 
 #ifdef SPIRITLESS_PO_DEBUG_PLURAL_PARSER_USE_INTERPRETER
@@ -638,7 +622,7 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
                 [](NumT n) -> NumT { return n % 10 == 1 && n % 100 != 11 ? 0 : n % 10 >= 2 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2; }
             },
             {
-                { VAR, NUM, 10, MOD, NUM, 1, EQ, VAR, NUM, 100, MOD, NUM, 11, NE, AND, IF, 4, NUM, 0, ELSE, 39, VAR, NUM, 10, MOD, NUM, 2, GE, VAR, NUM, 10, MOD, NUM, 4, LE, VAR, NUM, 100, MOD, NUM, 10, LT, VAR, NUM, 100, MOD, NUM, 20, GE, OR, AND, AND, IF, 4, NUM, 1, ELSE, 2, NUM, 2 },
+                { VAR, NUM, 10, MOD, NUM, 1, EQ, VAR, NUM, 100, MOD, NUM, 11, NE, AND, IF, 4, NUM, 0, ELSE, 39, VAR, NUM, 10, MOD, NUM, 2, GE, VAR, NUM, 10, MOD, NUM, 4, LE, AND, VAR, NUM, 100, MOD, NUM, 10, LT, VAR, NUM, 100, MOD, NUM, 20, GE, OR, AND, IF, 4, NUM, 1, ELSE, 2, NUM, 2 },
                 [](NumT n) -> NumT { return n % 10 == 1 && n % 100 != 11 ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2; }
             },
             {
@@ -650,7 +634,7 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
                 [](NumT n) -> NumT { return n == 1 ? 0 : (n == 0 || (n % 100 > 0 && n % 100 < 20)) ? 1 : 2; }
             },
             {
-                { VAR, NUM, 1, EQ, IF, 4, NUM, 0, ELSE, 39, VAR, NUM, 10, MOD, NUM, 2, GE, VAR, NUM, 10, MOD, NUM, 4, LE, VAR, NUM, 100, MOD, NUM, 10, LT, VAR, NUM, 100, MOD, NUM, 20, GE, OR, AND, AND, IF, 4, NUM, 1, ELSE, 2, NUM, 2 },
+                { VAR, NUM, 1, EQ, IF, 4, NUM, 0, ELSE, 39, VAR, NUM, 10, MOD, NUM, 2, GE, VAR, NUM, 10, MOD, NUM, 4, LE, AND, VAR, NUM, 100, MOD, NUM, 10, LT, VAR, NUM, 100, MOD, NUM, 20, GE, OR, AND, IF, 4, NUM, 1, ELSE, 2, NUM, 2 },
                 [](NumT n) -> NumT { return n == 1 ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2; }
             },
             {
@@ -755,6 +739,7 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
             throw ExpressionError("Bug: IF32 and ELSE32 must not be pushed to code.", it);
             break;
         case NOT:
+        case BOOL:
             break;
         case END:
             throw ExpressionError("Bug: END must not be pushed to code.", it);
@@ -886,159 +871,147 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
         }
     }
 
-    // term6 = term5, term61;
+    // term6 = term5 { '||', term5 }
     inline void PluralParser::ParseTerm6(InP &it, const InP end)
     {
         ParseTerm5(it, end);
-        ParseTerm61(it, end);
-    }
-
-    // term61 = e | '||', term6;
-    inline void PluralParser::ParseTerm61(InP &it, const InP end)
-    {
-        SkipSpaces(it, end);
-        if (it != end && *it == '|') {
-            ++it;
+        for (;;) {
+            SkipSpaces(it, end);
             if (it != end && *it == '|') {
                 ++it;
-                ParseTerm6(it, end);
-                PushOpcode(OR, it);
+                if (it != end && *it == '|') {
+                    ++it;
+                    ParseTerm5(it, end);
+                    PushOpcode(OR, it);
+                } else {
+                    throw ExpressionError("Parse error: '|' is expected.", it);
+                }
             } else {
-                throw ExpressionError("Parse error: '|' is expected.", it);
+                break;
             }
         }
     }
 
-    // term5 = term4, term51;
+    // term5 = term4 { '&&', term4 };
     inline void PluralParser::ParseTerm5(InP &it, const InP end)
     {
         ParseTerm4(it, end);
-        ParseTerm51(it, end);
-    }
-
-    // term51 = e | '&&', term5;
-    inline void PluralParser::ParseTerm51(InP &it, const InP end)
-    {
-        SkipSpaces(it, end);
-        if (it != end && *it == '&') {
-            ++it;
+        for (;;) {
+            SkipSpaces(it, end);
             if (it != end && *it == '&') {
                 ++it;
-                ParseTerm5(it, end);
-                PushOpcode(AND, it);
+                if (it != end && *it == '&') {
+                    ++it;
+                    ParseTerm4(it, end);
+                    PushOpcode(AND, it);
+                } else {
+                    throw ExpressionError("Parse error: '&' is expected.", it);
+                }
             } else {
-                throw ExpressionError("Parse error: '&' is expected.", it);
+                break;
             }
         }
     }
 
-    // term4 = term3, term41;
+    // term4 = term3 { '==' | '!=', term3 }
     inline void PluralParser::ParseTerm4(InP &it, const InP end)
     {
         ParseTerm3(it, end);
-        ParseTerm41(it, end);
-    }
-
-    // term41 = e | '==', term4 | '!=', term4;
-    inline void PluralParser::ParseTerm41(InP &it, const InP end)
-    {
-        SkipSpaces(it, end);
-        if (it != end && (*it == '=' || *it == '!')) {
-            const bool eq = *it == '=';
-            ++it;
-            if (it != end && *it == '=') {
+        for (;;) {
+            SkipSpaces(it, end);
+            if (it != end && (*it == '=' || *it == '!')) {
+                const bool eq = *it == '=';
                 ++it;
-                ParseTerm4(it, end);
-                if (eq) {
-                    PushOpcode(EQ, it);
+                if (it != end && *it == '=') {
+                    ++it;
+                    ParseTerm3(it, end);
+                    if (eq) {
+                        PushOpcode(EQ, it);
+                    } else {
+                        PushOpcode(NE, it);
+                    }
                 } else {
-                    PushOpcode(NE, it);
+                    throw ExpressionError("Parse error: '=' is expected.", it);
                 }
             } else {
-                throw ExpressionError("Parse error: '=' is expected.", it);
+                break;
             }
         }
     }
 
-    // term3 = term2, term31;
+    // term3 = term2 { '<' | '<=' | '>' | '>=', term2 }
     inline void PluralParser::ParseTerm3(InP &it, const InP end)
     {
         ParseTerm2(it, end);
-        ParseTerm31(it, end);
-    }
-
-    // term31 = e | '<', term3 | '<=', term3 | '>', term3 | '<=', term3;
-    inline void PluralParser::ParseTerm31(InP &it, const InP end)
-    {
-        SkipSpaces(it, end);
-        if (it != end && (*it == '<' || *it == '>')) {
-            const bool lt = *it == '<';
-            ++it;
-            const bool eq = it != end && *it == '=';
-            if (eq) {
+        for (;;) {
+            SkipSpaces(it, end);
+            if (it != end && (*it == '<' || *it == '>')) {
+                const bool lt = *it == '<';
                 ++it;
-            }
-            ParseTerm3(it, end);
-            if (lt) {
+                const bool eq = it != end && *it == '=';
                 if (eq) {
-                    PushOpcode(LE, it);
+                    ++it;
+                }
+                ParseTerm2(it, end);
+                if (lt) {
+                    if (eq) {
+                        PushOpcode(LE, it);
+                    } else {
+                        PushOpcode(LT, it);
+                    }
                 } else {
-                    PushOpcode(LT, it);
+                    if (eq) {
+                        PushOpcode(GE, it);
+                    } else {
+                        PushOpcode(GT, it);
+                    }
                 }
             } else {
-                if (eq) {
-                    PushOpcode(GE, it);
-                } else {
-                    PushOpcode(GT, it);
-                }
+                break;
             }
         }
     }
 
-    // term2 = term1, term21;
+    // term2 = term1 { '+' | '-' , term1 }
     inline void PluralParser::ParseTerm2(InP &it, const InP end)
     {
         ParseTerm1(it, end);
-        ParseTerm21(it, end);
-    }
-
-    // term21 = e | '+', term2 | '-', term2;
-    inline void PluralParser::ParseTerm21(InP &it, const InP end)
-    {
-        SkipSpaces(it, end);
-        if (it != end && (*it == '+' || *it == '-')) {
-            const bool plus = *it == '+';
-            ++it;
-            ParseTerm2(it, end);
-            if (plus) {
-                PushOpcode(ADD, it);
+        for (;;) {
+            SkipSpaces(it, end);
+            if (it != end && (*it == '+' || *it == '-')) {
+                const bool plus = *it == '+';
+                ++it;
+                ParseTerm1(it, end);
+                if (plus) {
+                    PushOpcode(ADD, it);
+                } else {
+                    PushOpcode(SUB, it);
+                }
             } else {
-                PushOpcode(SUB, it);
+                break;
             }
         }
     }
 
-    // term1 = term0, term11;
+    // term1 = term0 { '*' | '/' | '%' , term0 }
     inline void PluralParser::ParseTerm1(InP &it, const InP end)
     {
         ParseTerm0(it, end);
-        ParseTerm11(it, end);
-    }
-
-    // term11 = e | '*', term1 | '/', term1 | '%', term1;
-    inline void PluralParser::ParseTerm11(InP &it, const InP end)
-    {
-        SkipSpaces(it, end);
-        if (it != end && (*it == '*' || *it == '/' || *it == '%')) {
-            const char op = *it;
-            ++it;
-            ParseTerm1(it, end);
-            if (op == '*') {
-                PushOpcode(MULT, it);
-            } else if (op == '/') {
-                PushOpcode(DIV, it);
+        for (;;) {
+            SkipSpaces(it, end);
+            if (it != end && (*it == '*' || *it == '/' || *it == '%')) {
+                const char op = *it;
+                ++it;
+                ParseTerm0(it, end);
+                if (op == '*') {
+                    PushOpcode(MULT, it);
+                } else if (op == '/') {
+                    PushOpcode(DIV, it);
+                } else {
+                    PushOpcode(MOD, it);
+                }
             } else {
-                PushOpcode(MOD, it);
+                break;
             }
         }
     }
@@ -1047,11 +1020,13 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
     inline void PluralParser::ParseTerm0(InP &it, const InP end)
     {
         bool isNot = false;
+        bool isBool = false;
         for (;;) {
             SkipSpaces(it, end);
             if (it != end && *it == '!') {
                 ++it;
                 isNot = !isNot;
+                isBool = true;
             } else {
                 break;
             }
@@ -1059,6 +1034,8 @@ namespace SPIRITLESS_PO_DEBUG_PLURAL_PARSER_NAMESPACE {
         ParseValue(it, end);
         if (isNot) {
             PushOpcode(NOT, it);
+        } else if (isBool) {
+            PushOpcode(BOOL, it);
         }
     }
 

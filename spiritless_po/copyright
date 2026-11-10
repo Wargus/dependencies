@@ -4,27 +4,31 @@ Upstream-Contact: ooyooxei+gh@gmail.com
 Source: https://github.com/oo13/spiritless_po
 
 Files: *
-Copyright: © 2019, 2022 OOTA, Masato
+Copyright: © 2019, 2022, 2024, 2026 OOTA, Masato
 License: Boost
 Comment: Inspired by spirit_po (https://github.com/cbeck88/spirit-po), but nothing derived from it.
 Comment: The plural expression table in PluralParse.h is derived from lib/plurals.js in "https://github.com/alexanderwallin/node-gettext". It's published by a sort of MIT License but we have no need to show the copyright notice and the permission notice because the second sentence is removed.
 
 Files: test/*.cpp
-Copyright: © 2022 OOTA, Masato
+Copyright: © 2022, 2024, 2026 OOTA, Masato
            © 2013 Translate.
 License: CC-BY-SA-3.0
 Comment: A data table is derived from https://docs.translatehouse.org/projects/localization-guide/en/latest/l10n/pluralforms.html?id=l10n/pluralforms
 
-Files: sample/load.cpp
-Copyright: © 2019 OOTA, Masato
+Files: sample/*.cpp
+Copyright: © 2019, 2022, 2024 OOTA, Masato
 License: CC0-1.0
 
-Files: spiritless_po.doxygen test/CMakeLists.txt test/main.cpp sample/dump.cpp
+Files: spiritless_po.doxygen
 Copyright: © 2022 OOTA, Masato
 License: CC0-1.0
 
 Files: test/meson.build
-Copyright: © 2023 OOTA, Masato
+Copyright: © 2023, 2024 OOTA, Masato
+License: CC0-1.0
+
+Files: test/CMakeLists.txt
+Copyright: © 2022, 2024 OOTA, Masato
 License: CC0-1.0
 
 

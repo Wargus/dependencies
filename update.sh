@@ -15,9 +15,9 @@ REPOS=(
     "https://github.com/psi29a/unsf.git" "c5e5a8c" ""
     "https://github.com/doctest/doctest.git" "v2.5.3" ""
     "https://github.com/mjansson/mdns" "1.1" ""
-    "https://github.com/oo13/spiritless_po" "e2d9835d061c6f660bcd8afb90ea5b8b981ba4a5" ""
+    "https://github.com/oo13/spiritless_po" "c27f703ebc86bb50be975ac4d6f964cd3ae5a500" ""
     "https://github.com/wheybags/guichan" "46a5f58b577ad398ad51e6015261f690352edfe3" "" # master 0.9.0
-    "https://github.com/kallisti5/guisan" "v1.1.0" ""
+    "https://github.com/kallisti5/guisan" "63138d6499f44e42ac5145295a160e8fd9496856" ""
 )
 
 for i in `seq 0 3 ${#REPOS[@]}`; do
