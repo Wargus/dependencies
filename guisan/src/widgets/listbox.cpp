@@ -105,11 +105,6 @@ namespace gcn
         // and a partial visible row at the bottom.
         auto numberOfRows = currentClipArea.height / rowHeight + 2;
 
-        if (numberOfRows > mListModel->getNumberOfElements())
-        {
-            numberOfRows = mListModel->getNumberOfElements();
-        }
-
         // Calculate which row to start drawing. If the list box
         // has a negative y coordinate value we should check if
         // we should drop rows in the beginning of the list as
@@ -126,11 +121,16 @@ namespace gcn
             startRow = 0;
         }
 
-        const auto inactive_color = Color(170, 170, 170);
+        const auto inactive_color = getSelectionColor() - 0x303030;
 
         // The y coordinate where we start to draw the text is
         // simply the y coordinate multiplied with the font height.
         auto y = rowHeight * startRow;
+
+        if (startRow + numberOfRows > mListModel->getNumberOfElements())
+        {
+            numberOfRows = mListModel->getNumberOfElements() - startRow;
+        }
 
         for (auto i = startRow; i < startRow + numberOfRows; ++i)
         {

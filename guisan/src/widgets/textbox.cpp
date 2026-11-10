@@ -71,7 +71,7 @@ namespace gcn
     TextBox::TextBox() : TextBox("")
     {}
 
-    TextBox::TextBox(const std::string& text) : mText(new Text(text))
+    TextBox::TextBox(const std::string& text) : mText(std::make_unique<Text>(text))
     {
         setFocusable(true);
 
