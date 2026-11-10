@@ -8,7 +8,7 @@ REPOS=(
     "https://github.com/libsdl-org/SDL.git" "release-2.0.22" "test"
     "https://github.com/libsdl-org/SDL_image.git" "release-2.6.1" "external/libjxl external/dav1d external/libtiff external/libwebp external/libavif"
     "https://github.com/libsdl-org/SDL_mixer.git" "release-2.6.1" "external/flac external/mpg123 exernal/opus"
-    "https://github.com/xiph/theora.git" "v1.1.1" ""
+    "https://github.com/xiph/theora.git" "v1.2.0" ""
     "https://github.com/LuaDist/bzip2.git" "1.0.5" "manual.ps manual.pdf"
     "https://github.com/LuaDist/lcms.git" "1.19" "python " # last lcms 1.x release, libmng needs the lcms1 api; patched for swab() removal (lcms.patch)
     "https://github.com/LuaDist/libmng.git" "1.0.10" ""
