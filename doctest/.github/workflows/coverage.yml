@@ -1,0 +1,61 @@
+name: Coverage
+
+on:
+  push:
+    branches: [dev, master]
+    paths-ignore:
+      - "doc/**"
+      - "scripts/**"
+      - "LICENSE.txt"
+      - "README.md"
+
+  pull_request:
+    paths-ignore:
+      - ".github/ISSUE_TEMPLATE/**"
+      - "doc/**"
+      - "scripts/**"
+      - "LICENSE.txt"
+      - "README.md"
+
+env:
+  CTEST_OUTPUT_ON_FAILURE: ON
+  CTEST_PARALLEL_LEVEL: 2
+
+concurrency:
+  group: ${{ github.workflow }}|${{ github.ref_name }}|coverage
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install
+        run: sudo apt-get install -y ninja-build lcov
+
+      - name: Generate
+        run: cmake -B build -S . -G Ninja -D CMAKE_CXX_FLAGS="-fprofile-arcs -ftest-coverage" -D DOCTEST_INTERNAL_COVERAGE=ON
+
+      - name: Build
+        run: |
+          python scripts/assemble.py --remap
+          cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --no-tests=error
+
+      - name: LCOV
+        run: |
+          mkdir coverage
+          lcov -c -d build/ -o coverage/lcov.info --include "*/doctest/parts/*"
+
+      - name: Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          disable_search: true
+          plugins: noop
+          fail_ci_if_error: true

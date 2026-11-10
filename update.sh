@@ -13,7 +13,7 @@ REPOS=(
     "https://github.com/LuaDist/lcms.git" "1.19" "python " # last lcms 1.x release, libmng needs the lcms1 api; patched for swab() removal (lcms.patch)
     "https://github.com/LuaDist/libmng.git" "1.0.10" ""
     "https://github.com/psi29a/unsf.git" "c5e5a8c" ""
-    "https://github.com/doctest/doctest.git" "v2.4.11" ""
+    "https://github.com/doctest/doctest.git" "v2.5.3" ""
     "https://github.com/mjansson/mdns" "1.1" ""
     "https://github.com/oo13/spiritless_po" "e2d9835d061c6f660bcd8afb90ea5b8b981ba4a5" ""
     "https://github.com/wheybags/guichan" "46a5f58b577ad398ad51e6015261f690352edfe3" "" # master 0.9.0
