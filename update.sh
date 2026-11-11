@@ -13,7 +13,7 @@ REPOS=(
     "https://github.com/psi29a/unsf.git" "c5e5a8c" ""
     "https://github.com/doctest/doctest.git" "v2.5.3" ""
     "https://github.com/mjansson/mdns" "1.4.3" ""
-    "https://github.com/ladislav-zezula/StormLib.git" "v9.40" "doc test sources make.bat make-msvc.bat Premake5.lua storm.dll StormLib.sln StormLib_vs08.sln StormLib_vs08.vcproj StormLib_vs08_dll.vcproj StormLib_vs08_test.vcproj StormLib.vcxproj StormLib.vcxproj.filters StormLib_dll.vcxproj StormLib_dll.vcxproj.filters StormLib_test.vcxproj StormLib_test.vcxproj.filters StormLib.xcodeproj Info.plist"
+    "https://github.com/ladislav-zezula/StormLib.git" "116135c27e8c0dcf8ea0a0c549a6d737ce10fc73" "doc test sources make.bat make-msvc.bat Premake5.lua storm.dll StormLib.sln StormLib_vs08.sln StormLib_vs08.vcproj StormLib_vs08_dll.vcproj StormLib_vs08_test.vcproj StormLib.vcxproj StormLib.vcxproj.filters StormLib_dll.vcxproj StormLib_dll.vcxproj.filters StormLib_test.vcxproj StormLib_test.vcxproj.filters StormLib.xcodeproj Info.plist"
     "https://github.com/oo13/spiritless_po" "c27f703ebc86bb50be975ac4d6f964cd3ae5a500" ""
     "https://github.com/wheybags/guichan" "46a5f58b577ad398ad51e6015261f690352edfe3" "" # master 0.9.0
     "https://github.com/kallisti5/guisan" "63138d6499f44e42ac5145295a160e8fd9496856" ""

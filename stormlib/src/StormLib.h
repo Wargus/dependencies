@@ -482,6 +482,7 @@ typedef enum _SFileInfoClass
     SFileInfoEncryptionKey,                 // File encryption key
     SFileInfoEncryptionKeyRaw,              // Unfixed value of the file key
     SFileInfoCRC32,                         // CRC32 of the file
+    SFileInfoMD5,                           // MD5 of the file, from (attributes). 0 if not present (BYTE [MD5_DIGEST_SIZE])
 
     SFileInfoInvalid = 0xFFF,               // Invalid file info class
 } SFileInfoClass;

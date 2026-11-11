@@ -47,13 +47,23 @@ cmake -G "Visual Studio 17 2022" -B build_x86 -D BUILD_SHARED_LIBS=ON
 3. Rebuild
 
 ### Linux
+By default, StormLib is built against the system versions of zlib, bzip2, libtommath and libtomcrypt.
+
+Install the build tools and dependencies (Debian/Ubuntu):
+```
+sudo apt-get install build-essential cmake pkg-config zlib1g-dev libbz2-dev libtommath-dev libtomcrypt-dev
+```
+
+Build and install:
 ```
 git clone https://github.com/ladislav-zezula/StormLib.git
 cd StormLib && git checkout <latest-release-tag>
-cmake -B build -D BUILD_SHARED_LIBS=ON
-cmake --build build --config Release
+cmake -B build -D CMAKE_BUILD_TYPE=Release -D BUILD_SHARED_LIBS=ON
+cmake --build build
 sudo cmake --install build
 ```
+
+To use the copies of the dependencies bundled with StormLib instead of the system ones, add `-D STORM_USE_BUNDLED_LIBRARIES=ON` to the first `cmake` command. In that case only `build-essential` and `cmake` need to be installed.
 
 Include StormLib in your project: `#include <StormLib.h>`  
 Make sure you compile your project with `-lstorm -lz -lbz2`
@@ -61,9 +71,23 @@ Make sure you compile your project with `-lstorm -lz -lbz2`
 To produce deb/rpm packages:
 ```
 cd build
-cpack -G "DEB" -D CPACK_PACKAGE_FILE_NAME=libstorm-dev_v9.30_amd64
-cpack -G "RPM" -D CPACK_PACKAGE_FILE_NAME=libstorm-devel-v9.30.x86_64
+cpack -G "DEB"
+cpack -G "RPM"
 ``` 
+
+### Any platform (Conan)
+
+[Conan](https://conan.io) can automatically resolve and build all dependencies (zlib, bzip2, libtommath) on any platform.
+
+```
+conan install . -of build -s build_type=Release --build=missing
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DSTORM_USE_BUNDLED_LIBRARIES=OFF -DWITH_BUNDLED_LIBTOMCRYPT=ON -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake
+cmake --build build --config Release
+```
+
+`-DWITH_BUNDLED_LIBTOMCRYPT=ON` is required because `libtomcrypt` is not yet packaged in Conan Index.  
+
+For a 32-bit build on Windows, add `-s:h arch=x86` to the `conan install` command.
 
 ### List of all CMake options
 
@@ -73,6 +97,7 @@ cpack -G "RPM" -D CPACK_PACKAGE_FILE_NAME=libstorm-devel-v9.30.x86_64
 | `STORM_UNICODE`               | Unicode or ANSI support                                           | OFF     |
 | `STORM_SKIP_INSTALL`          | Skip installing files                                             | OFF     |
 | `STORM_USE_BUNDLED_LIBRARIES` | Force use of bundled dependencies instead of system libraries     | OFF     |
-| `WITH_LIBTOMCRYPT`            | Use system LibTomCrypt library (non-Windows only)                 | OFF     |
+| `WITH_BUNDLED_LIBTOMMATH`     | Bundle libtommath even when `STORM_USE_BUNDLED_LIBRARIES` is OFF  | OFF     |
+| `WITH_BUNDLED_LIBTOMCRYPT`    | Bundle libtomcrypt even when `STORM_USE_BUNDLED_LIBRARIES` is OFF | OFF     |
 | `STORM_BUILD_TESTS`           | Compile StormLib test application                                 | OFF     |
 | `STORMTEST_USE_OLD_PATHS`     | Uses hardcoded paths for test files, OFF uses `build_folder/work` | ON      |

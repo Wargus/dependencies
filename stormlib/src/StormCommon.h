@@ -51,7 +51,46 @@
 // Cryptography support
 
 // Headers from LibTomCrypt
-#include "libtomcrypt/src/headers/tomcrypt.h"
+#ifndef __SYS_LIBTOMCRYPT
+  #include "libtomcrypt/src/headers/tomcrypt.h"
+#else
+  // StormLib always uses LibTomMath as its bignum backend (see
+  // InitializeMpqCryptography() in SBaseCommon.cpp), but some distro
+  // packages of LibTomCrypt ship a tomcrypt_custom.h with LTM_DESC
+  // disabled by default. The symbol is still exported by the library
+  // itself, so force the declaration on regardless of the packaged config.
+  #ifndef LTM_DESC
+    #define LTM_DESC
+  #endif
+  #include <tomcrypt.h>
+
+  // Compatibility layer for custom additions StormLib makes to its bundled
+  // fork of LibTomCrypt, which are not present in upstream/system headers.
+
+  // StormLib's bundled headers use this (differently-named) enum value
+  // instead of the upstream LTC_PKCS_1_V1_5; the underlying value is the same.
+  #ifndef LTC_LTC_PKCS_1_V1_5
+    #define LTC_LTC_PKCS_1_V1_5 LTC_PKCS_1_V1_5
+  #endif
+
+  // rsa_verify_simple() is a StormLib-specific addition (see
+  // src/libtomcrypt/src/pk/rsa/rsa_verify_simple.c) that is not part of
+  // upstream LibTomCrypt, so the system header does not declare it.
+  // It is implemented in a plain .c file (C linkage), so the declaration
+  // needs to be wrapped in extern "C" when seen from C++ translation units.
+  #ifdef LTC_MRSA
+    #ifdef __cplusplus
+extern "C" {
+    #endif
+int rsa_verify_simple(const unsigned char *sig,  unsigned long siglen,
+                      const unsigned char *hash, unsigned long hashlen,
+                            int           *stat,
+                            rsa_key       *key);
+    #ifdef __cplusplus
+}
+    #endif
+  #endif
+#endif
 
 // For HashStringJenkins
 #include "jenkins/lookup.h"

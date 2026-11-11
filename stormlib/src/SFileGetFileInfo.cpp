@@ -461,6 +461,10 @@ bool WINAPI SFileGetFileInfo(
 
         case SFileInfoCRC32:
             return GetInfo(pvFileInfo, cbFileInfo, &hf->pFileEntry->dwCrc32, sizeof(DWORD), pcbLengthNeeded);
+
+        case SFileInfoMD5:
+            return GetInfo(pvFileInfo, cbFileInfo, hf->pFileEntry->md5, MD5_DIGEST_SIZE, pcbLengthNeeded);
+
         default:
             // Invalid info class
             return GetInfo_ReturnError(ERROR_INVALID_PARAMETER);

@@ -597,6 +597,10 @@ macro(vendored_stormlib)
     # StormLib ships a modern CMake build with proper targets, so it is the
     # only dependency configured with add_subdirectory instead of
     # ExternalProject.
+    # Bundled mode keeps the vendored build self contained: newer StormLib
+    # releases require system zlib, bzip2, libtomcrypt and libtommath
+    # otherwise, none of which a cross or vendored build has available.
+    set(STORM_USE_BUNDLED_LIBRARIES ON CACHE BOOL "Use bundled dependencies" FORCE)
     set(STORM_SKIP_INSTALL ON CACHE BOOL "Skip installing files" FORCE)
     set(STORM_BUILD_TESTS OFF CACHE BOOL "Compile StormLib test application" FORCE)
     add_subdirectory(${CMAKE_CURRENT_MACRO_LIST_DIR}/stormlib ${CMAKE_CURRENT_BINARY_DIR}/stormlib)
