@@ -12,7 +12,7 @@ REPOS=(
     "https://gitlab.com/bzip2/bzip2.git" "bzip2-1.0.8" ""
     "https://github.com/psi29a/unsf.git" "c5e5a8c" ""
     "https://github.com/doctest/doctest.git" "v2.5.3" ""
-    "https://github.com/mjansson/mdns" "1.1" ""
+    "https://github.com/mjansson/mdns" "1.4.3" ""
     "https://github.com/oo13/spiritless_po" "c27f703ebc86bb50be975ac4d6f964cd3ae5a500" ""
     "https://github.com/wheybags/guichan" "46a5f58b577ad398ad51e6015261f690352edfe3" "" # master 0.9.0
     "https://github.com/kallisti5/guisan" "63138d6499f44e42ac5145295a160e8fd9496856" ""
