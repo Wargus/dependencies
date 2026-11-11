@@ -233,61 +233,7 @@ macro(vendored_jpeg)
   endif()
 endmacro()
 
-macro(vendored_lcms)
-  include(ExternalProject)
-  if(NOT DEFINED USE_VENDORED_LCMS)
-    set(USE_VENDORED_LCMS true)
 
-    ExternalProject_Add(lcms
-      SOURCE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/lcms"
-      PREFIX "${CMAKE_CURRENT_BINARY_DIR}/lcms/"
-      CMAKE_ARGS ${STRATAGUS_EXTERNAL_CMAKE_ARGS}
-      CMAKE_CACHE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_STATIC_LIBS:BOOL=ON
-      INSTALL_COMMAND ""
-    )
-
-    set(LCMS_FOUND TRUE)
-    set(LCMS_INCLUDE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/lcms/include/")
-    if(MSVC)
-      set(LCMS_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/lcms/src/lcms-build/$<CONFIGURATION>/lcms.lib")
-    else()
-      set(LCMS_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/lcms/src/lcms-build/liblcms.a")
-    endif()
-  endif()
-endmacro()
-
-macro(vendored_mng)
-  include(ExternalProject)
-  if(NOT DEFINED USE_VENDORED_MNG)
-    set(USE_VENDORED_MNG true)
-    vendored_zlib()
-    vendored_jpeg()
-    vendored_lcms()
-
-    ExternalProject_Add(mng
-      SOURCE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/libmng"
-      PREFIX "${CMAKE_CURRENT_BINARY_DIR}/mng/"
-      INSTALL_COMMAND ""
-      CMAKE_ARGS ${STRATAGUS_EXTERNAL_CMAKE_ARGS}
-      CMAKE_CACHE_ARGS -DZLIB_FOUND:STRING=1 -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR} -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARIES}
-      -DJPEG_FOUND:STRING=1 -DJPEG_INCLUDE_DIR:PATH=${JPEG_INCLUDE_DIR} -DJPEG_LIBRARY:FILEPATH=${JPEG_LIBRARIES}
-      -DLCMS_FOUND:STRING=1 -DLCMS_INCLUDE_DIR:PATH=${LCMS_INCLUDE_DIR} -DLCMS_LIBRARY:FILEPATH=${LCMS_LIBRARIES}
-      -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
-      -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_STATIC_LIBS:BOOL=ON
-    )
-
-    add_dependencies(mng zlib jpeg lcms)
-
-    set(MNG_FOUND TRUE)
-    set(MNG_DEFINITIONS -DMNG_NO_INCLUDE_JNG) # see patch
-    set(MNG_INCLUDE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/libmng/")
-    if(MSVC)
-      set(MNG_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/mng/src/mng-build/$<CONFIGURATION>/mng.lib" ${ZLIB_LIBRARIES} ${LCMS_LIBRARIES})
-    else()
-      set(MNG_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/mng/src/mng-build/libmng.a" ${ZLIB_LIBRARIES} ${LCMS_LIBRARIES})
-    endif()
-  endif()
-endmacro()
 
 macro(vendored_theora)
   include(ExternalProject)
