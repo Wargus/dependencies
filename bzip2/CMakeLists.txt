@@ -31,7 +31,7 @@ ADD_TEST(test ${CMAKE_COMMAND} -P test.cmake)
 
 INSTALL(TARGETS bzip2 bzip2recover bz2 RUNTIME DESTINATION ${INSTALL_BIN} LIBRARY DESTINATION ${INSTALL_LIB} ARCHIVE DESTINATION ${INSTALL_LIB})
 INSTALL(FILES bzlib.h DESTINATION ${INSTALL_INC})
-INSTALL(FILES README LICENSE manual.html bzip2.1 bzgrep.1 bzmore.1 bzdiff.1
+INSTALL(FILES README LICENSE bzip2.txt bzip2.1 bzgrep.1 bzmore.1 bzdiff.1
               bzegrep.1 bzfgrep.1 bzless.1 bzcmp.1
               DESTINATION ${INSTALL_DOC})
 INSTALL(PROGRAMS bzgrep bzmore bzdiff DESTINATION ${INSTALL_BIN}) #~2DO: windows versions?
