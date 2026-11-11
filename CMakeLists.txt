@@ -589,3 +589,21 @@ macro(vendored_guisan)
     add_dependencies(guisan_lib SDL2)
   endif()
 endmacro()
+
+macro(vendored_stormlib)
+  if(NOT DEFINED USE_VENDORED_STORMLIB)
+    set(USE_VENDORED_STORMLIB true)
+
+    # StormLib ships a modern CMake build with proper targets, so it is the
+    # only dependency configured with add_subdirectory instead of
+    # ExternalProject.
+    set(STORM_SKIP_INSTALL ON CACHE BOOL "Skip installing files" FORCE)
+    set(STORM_BUILD_TESTS OFF CACHE BOOL "Compile StormLib test application" FORCE)
+    add_subdirectory(${CMAKE_CURRENT_MACRO_LIST_DIR}/stormlib ${CMAKE_CURRENT_BINARY_DIR}/stormlib)
+
+    set(STORMLIB_FOUND true)
+    set(STORMLIB_INCLUDE_DIR ${CMAKE_CURRENT_MACRO_LIST_DIR}/stormlib/src)
+    set(STORMLIB_LIBRARY storm)
+    set(STORMLIB_TARGET StormLib::storm)
+  endif()
+endmacro()
