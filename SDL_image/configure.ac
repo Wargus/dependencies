@@ -3,15 +3,15 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Set various version strings - taken gratefully from the GTk sources
 # See docs/release_checklist.md
 m4_define([MAJOR_VERSION_MACRO], [2])
-m4_define([MINOR_VERSION_MACRO], [6])
-m4_define([MICRO_VERSION_MACRO], [1])
+m4_define([MINOR_VERSION_MACRO], [8])
+m4_define([MICRO_VERSION_MACRO], [12])
 
 AC_INIT([SDL2_image],
         [MAJOR_VERSION_MACRO.MINOR_VERSION_MACRO.MICRO_VERSION_MACRO],
         [https://github.com/libsdl-org/SDL_image/issues],
         [SDL2_image])
 AC_CONFIG_MACRO_DIR([acinclude])
-AC_CONFIG_SRCDIR([IMG.c])
+AC_CONFIG_SRCDIR([src/IMG.c])
 
 AC_SUBST([MAJOR_VERSION], MAJOR_VERSION_MACRO)
 AC_SUBST([MINOR_VERSION], MINOR_VERSION_MACRO)
@@ -58,15 +58,24 @@ dnl Detect the canonical build and host environments
 AC_CANONICAL_HOST
 
 dnl Setup for automake
-AM_INIT_AUTOMAKE([foreign tar-ustar])
+AM_INIT_AUTOMAKE([foreign subdir-objects tar-ustar])
 
 dnl Check for tools
+AC_PROG_AWK
 AC_PROG_CC
 AC_PROG_OBJC
 AC_CHECK_TOOL(RC,[windres],[:])
 AC_PROG_INSTALL
+AC_PROG_FGREP
 AC_PROG_MAKE_SET
 PKG_PROG_PKG_CONFIG
+
+if [ test -z "$AWK" ]; then
+    AC_MSG_ERROR([*** awk not found, aborting])
+fi
+
+AC_CHECK_PROGS([SORT], [gsort sort], [false])
+AS_IF([! "$SORT" -V </dev/null >/dev/null], [AC_MSG_WARN([sort(1) that supports the -V option is required to find dynamic libraries])])
 
 case "$host" in
     *-*-beos*)
@@ -85,7 +94,9 @@ case "$host" in
             fi
         fi
         use_version_rc=true
-        LT_EXTRA="-Wl,version.o"
+        LT_EXTRA="-Wl,src/version.o"
+        # Eliminate libgcc*.dll dependency.
+        CFLAGS="$CFLAGS -static-libgcc"
         ;;
     *-*-darwin*)
         AC_ARG_ENABLE([imageio], [AS_HELP_STRING([--enable-imageio], [use native Mac OS X frameworks for loading images [default=yes]])],
@@ -95,6 +106,7 @@ case "$host" in
         AC_MSG_RESULT($enable_imageio)
         if test x$enable_imageio = xyes; then
             IMG_LIBS="-Wl,-framework,ApplicationServices -lobjc $IMG_LIBS"
+            CMAKE_LIBS="-Wl,-framework,ApplicationServices;objc;$CMAKE_LIBS"
         else
             CFLAGS="$CFLAGS -DSDL_IMAGE_USE_COMMON_BACKEND"
         fi
@@ -123,16 +135,17 @@ base_libdir=`echo \${libdir} | sed 's/.*\/\(.*\)/\1/; q'`
 dnl Function to find a library in the compiler search path
 find_lib()
 {
-    gcc_bin_path=[`$CC -print-search-dirs 2>/dev/null | fgrep programs: | sed 's/[^=]*=\(.*\)/\1/' | sed 's/:/ /g'`]
-    gcc_lib_path=[`$CC -print-search-dirs 2>/dev/null | fgrep libraries: | sed 's/[^=]*=\(.*\)/\1/' | sed 's/:/ /g'`]
+    gcc_bin_path=[`$CC -print-search-dirs 2>/dev/null | $FGREP programs: | sed 's/[^=]*=\(.*\)/\1/' | sed 's/:/ /g'`]
+    gcc_lib_path=[`$CC -print-search-dirs 2>/dev/null | $FGREP libraries: | sed 's/[^=]*=\(.*\)/\1/' | sed 's/:/ /g'`]
     env_lib_path=[`echo $LIBS $LDFLAGS $* | sed 's/-L[ ]*//g'`]
+    env_bin_path=`echo $env_lib_path | sed 's,/lib,/bin,'`
     if test "$cross_compiling" = yes; then
         host_lib_path=""
     else
         host_lib_path="$ac_default_prefix/$base_libdir $ac_default_prefix/$base_bindir /usr/$base_libdir /usr/local/$base_libdir"
     fi
-    for path in $env_lib_path $gcc_bin_path $gcc_lib_path $host_lib_path; do
-        lib=[`ls -- $path/$1 2>/dev/null | sed -e '/\.so\..*\./d' -e 's,.*/,,' | sort | tail -1`]
+    for path in $env_bin_path $env_lib_path $gcc_bin_path $gcc_lib_path $host_lib_path; do
+        lib=[`ls -- $path/$1 2>/dev/null | sed 's,.*/,,' | $SORT -V -r | $AWK 'BEGIN{FS="."}{ print NF, $0 }' | $SORT -n -s | sed 's,[0-9]* ,,' | head -1`]
         if test x$lib != x; then
             echo $lib
             return
@@ -221,7 +234,7 @@ AC_ARG_ENABLE([stb_image], [AS_HELP_STRING([--enable-stb-image], [use stb_image 
  [], [enable_stb_image=yes])
 AC_ARG_ENABLE([avif], [AS_HELP_STRING([--enable-avif], [support loading AVIF images [default=yes]])],
  [], [enable_avif=yes])
-AC_ARG_ENABLE([avif-shared], [AS_HELP_STRING([--enable-avif-shared], [dynamically load AVIF support [default=yes]])],
+AC_ARG_ENABLE([avif-shared], [AS_HELP_STRING([--enable-avif-shared@<:@=SONAME@:>@], [dynamically load AVIF support [default=yes]])],
  [], [enable_avif_shared=yes])
 AC_ARG_ENABLE([bmp], [AS_HELP_STRING([--enable-bmp], [support loading BMP/ICO/CUR images [default=yes]])],
  [], [enable_bmp=yes])
@@ -229,13 +242,13 @@ AC_ARG_ENABLE([gif], [AS_HELP_STRING([--enable-gif], [support loading GIF images
  [], [enable_gif=yes])
 AC_ARG_ENABLE([jpg], [AS_HELP_STRING([--enable-jpg], [support loading JPG images [default=yes]])],
  [], [enable_jpg=yes])
-AC_ARG_ENABLE([jpg-shared], [AS_HELP_STRING([--enable-jpg-shared], [dynamically load JPG support [default=yes]])],
+AC_ARG_ENABLE([jpg-shared], [AS_HELP_STRING([--enable-jpg-shared@<:@=SONAME@:>@], [dynamically load JPG support [default=yes]])],
  [], [enable_jpg_shared=yes])
 AC_ARG_ENABLE([save-jpg], [AS_HELP_STRING([--enable-save-jpg], [support saving JPG images [default=yes]])],
  [], [enable_save_jpg=yes])
 AC_ARG_ENABLE([jxl], [AS_HELP_STRING([--enable-jxl], [support loading JXL images [default=yes]])],
  [], [enable_jxl=yes])
-AC_ARG_ENABLE([jxl-shared], [AS_HELP_STRING([--enable-jxl-shared], [dynamically load JXL support [default=yes]])],
+AC_ARG_ENABLE([jxl-shared], [AS_HELP_STRING([--enable-jxl-shared@<:@=SONAME@:>@], [dynamically load JXL support [default=yes]])],
  [], [enable_jxl_shared=yes])
 AC_ARG_ENABLE([lbm], [AS_HELP_STRING([--enable-lbm], [support loading LBM images [default=yes]])],
  [], [enable_lbm=yes])
@@ -243,7 +256,7 @@ AC_ARG_ENABLE([pcx], [AS_HELP_STRING([--enable-pcx], [support loading PCX images
  [], [enable_pcx=yes])
 AC_ARG_ENABLE([png], [AS_HELP_STRING([--enable-png], [support loading PNG images [default=yes]])],
  [], [enable_png=yes])
-AC_ARG_ENABLE([png-shared], [AS_HELP_STRING([--enable-png-shared], [dynamically load PNG support [default=yes]])],
+AC_ARG_ENABLE([png-shared], [AS_HELP_STRING([--enable-png-shared@<:@=SONAME@:>@], [dynamically load PNG support [default=yes]])],
  [], [enable_png_shared=yes])
 AC_ARG_ENABLE([save-png], [AS_HELP_STRING([--enable-save-png], [support saving PNG images [default=yes]])],
  [], [enable_save_png=yes])
@@ -255,7 +268,7 @@ AC_ARG_ENABLE([tga], [AS_HELP_STRING([--enable-tga], [support loading TGA images
  [], [enable_tga=yes])
 AC_ARG_ENABLE([tif], [AS_HELP_STRING([--enable-tif], [support loading TIFF images [default=yes]])],
  [], [enable_tif=yes])
-AC_ARG_ENABLE([tif-shared], [AS_HELP_STRING([--enable-tif-shared], [dynamically load TIFF support [default=yes]])],
+AC_ARG_ENABLE([tif-shared], [AS_HELP_STRING([--enable-tif-shared@<:@=SONAME@:>@], [dynamically load TIFF support [default=yes]])],
  [], [enable_tif_shared=yes])
 AC_ARG_ENABLE([xcf], [AS_HELP_STRING([--enable-xcf], [support loading XCF images [default=yes]])],
  [], [enable_xcf=yes])
@@ -265,8 +278,6 @@ AC_ARG_ENABLE([xv], [AS_HELP_STRING([--enable-xv], [support loading XV images [d
  [], [enable_xv=yes])
 AC_ARG_ENABLE([webp], [AS_HELP_STRING([--enable-webp], [support loading WEBP images [default=yes]])],
  [], [enable_webp=yes])
-AC_ARG_ENABLE([webpdec], [AS_HELP_STRING([--enable-webpdec], [support loading WEBP images via libwebpdecoder instead of libwebp [default=no]])],
- [], [enable_webpdec=no])
 AC_ARG_ENABLE([webp-shared], [AS_HELP_STRING([--enable-webp-shared], [dynamically load WEBP support [default=yes]])],
  [], [enable_webp_shared=yes])
 AC_ARG_ENABLE([qoi], [AS_HELP_STRING([--enable-qoi], [support loading QOI images [default=yes]])],
@@ -299,19 +310,31 @@ AC_SUBST([USE_WIC], 0)
 
 load_avif=0
 if test x$enable_avif = xyes; then
-    PKG_CHECK_MODULES([LIBAVIF], [libavif], [dnl
+    PKG_CHECK_MODULES([LIBAVIF], [libavif >= 0.9.3], [dnl
         have_avif_hdr=yes
         have_avif_lib=yes
         have_avif_pc=yes
       ], [dnl
-        AC_CHECK_HEADER([avif/avif.h], [
+        save_LIBS="$LIBS"
+        LIBS="-lavif"
+        AC_LANG_PUSH([C])
+        AC_MSG_CHECKING([for libavif >= 0.9.3])
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+          #include <avif/avif.h>
+        ]], [[
+          #if (AVIF_VERSION < 90300)
+          #error libavif too old.
+          #endif
+          return !!avifVersion();
+        ]])],[
             have_avif_hdr=yes
-            LIBAVIF_CFLAGS=""
-        ])
-        AC_CHECK_LIB([avif], [avifVersion], [
             have_avif_lib=yes
+            LIBAVIF_CFLAGS=""
             LIBAVIF_LIBS="-lavif"
-        ])
+        ], [have_avif_lib=no])
+        LIBS="$save_LIBS"
+        AC_LANG_POP([C])
+        AC_MSG_RESULT([$have_avif_lib])
       ])
     if test x$have_avif_hdr = xyes -a x$have_avif_lib = xyes; then
         if test x$enable_avif = xyes; then
@@ -320,10 +343,16 @@ if test x$enable_avif = xyes; then
 
         case "$host" in
             *-*-darwin*)
-                avif_lib=[`find_lib libavif.dylib`]
+                avif_lib=[`find_lib "libavif.[0-9]*.dylib"`]
+                if test x$avif_lib = x; then
+                    avif_lib=[`find_lib "libavif*.dylib"`]
+                fi
                 ;;
             *-*-cygwin* | *-*-mingw*)
-                avif_lib=[`find_lib "libavif*.dll"`]
+                avif_lib=[`find_lib "libavif-[0-9]*.dll"`]
+                if test x$avif_lib = x; then
+                    avif_lib=[`find_lib "libavif*.dll"`]
+                fi
                 ;;
             *)
                 avif_lib=[`find_lib "libavif[0-9]*.so.*"`]
@@ -333,6 +362,10 @@ if test x$enable_avif = xyes; then
                 ;;
         esac
         load_avif=1
+
+        AS_CASE(["$enable_avif_shared"],
+            [yes | no], [],
+            [*], [avif_lib="$enable_avif_shared"])
     elif test x$enable_avif = xyes; then
         AC_MSG_WARN([*** Unable to find AVIF library (https://github.com/AOMediaCodec/libavif)])
         AC_MSG_WARN([AVIF image loading disabled])
@@ -372,7 +405,10 @@ if test x$enable_jpg = xyes; then
 
             case "$host" in
                 *-*-darwin*)
-                    jpg_lib=[`find_lib libjpeg.dylib`]
+                    jpg_lib=[`find_lib "libjpeg.[0-9]*.dylib"`]
+                    if test x$jpg_lib = x; then
+                       jpg_lib=[`find_lib libjpeg.dylib`]
+                    fi
                     ;;
                 *-*-cygwin* | *-*-mingw*)
                     jpg_lib=[`find_lib "libjpeg*.dll"`]
@@ -384,6 +420,10 @@ if test x$enable_jpg = xyes; then
                     fi
                     ;;
             esac
+
+            AS_CASE(["$enable_jpg_shared"],
+                [yes | no], [],
+                [*], [jpg_lib="$enable_jpg_shared"])
         else
             AC_MSG_WARN([*** Unable to find JPEG library (http://www.ijg.org/)])
             AC_MSG_WARN([JPG image loading disabled])
@@ -416,10 +456,16 @@ if test x$enable_jxl = xyes; then
 
         case "$host" in
             *-*-darwin*)
-                jxl_lib=[`find_lib libjxl.dylib`]
+                jxl_lib=[`find_lib "libjxl.[0-9]*.dylib"`]
+                if test x$jxl_lib = x; then
+                   jxl_lib=[`find_lib libjxl.dylib`]
+                fi
                 ;;
             *-*-cygwin* | *-*-mingw*)
-                jxl_lib=[`find_lib "libjxl*.dll"`]
+                jxl_lib=[`find_lib "libjxl-[0-9]*.dll"`]
+                if test x$jxl_lib = x; then
+                   jxl_lib=[`find_lib "libjxl.dll"`]
+                fi
                 ;;
             *)
                 jxl_lib=[`find_lib "libjxl[0-9]*.so.*"`]
@@ -428,6 +474,10 @@ if test x$enable_jxl = xyes; then
                 fi
                 ;;
         esac
+
+        AS_CASE(["$enable_jxl_shared"],
+            [yes | no], [],
+            [*], [jxl_lib="$enable_jxl_shared"])
     elif test x$enable_jxl = xyes; then
         AC_MSG_WARN([*** Unable to find JXL library (https://jpegxl.info/)])
         AC_MSG_WARN([JXL image loading disabled])
@@ -465,7 +515,10 @@ if test x$enable_png = xyes; then
 
             case "$host" in
                 *-*-darwin*)
-                    png_lib=[`find_lib libpng.dylib`]
+                    png_lib=[`find_lib "libpng[0-9]*.dylib"`]
+                    if test x$png_lib = x; then
+                       png_lib=[`find_lib libpng.dylib`]
+                    fi
                     ;;
                 *-*-cygwin* | *-*-mingw*)
                     png_lib=[`find_lib "libpng*.dll"`]
@@ -477,6 +530,10 @@ if test x$enable_png = xyes; then
                     fi
                     ;;
             esac
+
+            AS_CASE(["$enable_png_shared"],
+                [yes | no], [],
+                [*], [png_lib="$enable_png_shared"])
         else
             AC_MSG_WARN([*** Unable to find PNG library (http://www.libpng.org/pub/png/)])
             AC_MSG_WARN([PNG image loading disabled])
@@ -507,7 +564,10 @@ if test x$enable_tif = xyes -a x$enable_imageio != xyes; then
 
         case "$host" in
             *-*-darwin*)
-                tif_lib=[`find_lib libtiff.dylib`]
+                tif_lib=[`find_lib "libtiff.[0-9]*.dylib"`]
+                if test x$tif_lib = x; then
+                   tif_lib=[`find_lib libtiff.dylib`]
+                fi
                 ;;
             *-*-cygwin* | *-*-mingw*)
                 tif_lib=[`find_lib "libtiff-*.dll"`]
@@ -519,6 +579,10 @@ if test x$enable_tif = xyes -a x$enable_imageio != xyes; then
                 fi
                 ;;
         esac
+
+        AS_CASE(["$enable_tif_shared"],
+            [yes | no], [],
+            [*], [tif_lib="$enable_tif_shared"])
     else
         AC_MSG_WARN([*** Unable to find Tiff library (http://www.simplesystems.org/libtiff/)])
         AC_MSG_WARN([TIF image loading disabled])
@@ -526,14 +590,22 @@ if test x$enable_tif = xyes -a x$enable_imageio != xyes; then
 fi
 AC_SUBST([LOAD_TIF], $load_tif)
 
-load_webp=0
-if test x$enable_webpdec = xyes; then
-  webplib=webpdecoder
-else
-  webplib=webp
-fi
 if test x$enable_webp = xyes; then
-    PKG_CHECK_MODULES([LIBWEBP], [lib$webplib], [dnl
+    PKG_CHECK_MODULES([LIBWEBPDEMUX], [libwebpdemux], [dnl
+        have_webpdemux_hdr=yes
+        have_webpdemux_lib=yes
+        have_webpdemux_pc=yes
+      ], [dnl
+        AC_CHECK_HEADER([webp/demux.h], [
+            have_webpdemux_hdr=yes
+            LIBWEBPDEMUX_CFLAGS=""
+        ])
+        AC_CHECK_LIB([webpdemux], [WebPDemuxGetFrame], [
+            have_webpdemux_lib=yes
+            LIBWEBPDEMUX_LIBS="-lwebpdemux"
+        ], [], [-lm])
+      ])
+    PKG_CHECK_MODULES([LIBWEBP], [libwebp], [dnl
         have_webp_hdr=yes
         have_webp_lib=yes
         have_webp_pc=yes
@@ -542,26 +614,34 @@ if test x$enable_webp = xyes; then
             have_webp_hdr=yes
             LIBWEBP_CFLAGS=""
         ])
-        AC_CHECK_LIB([$webplib], [WebPGetDecoderVersion], [
+        AC_CHECK_LIB([webp], [WebPGetDecoderVersion], [
             have_webp_lib=yes
-            LIBWEBP_LIBS="-l$webplib"
+            LIBWEBP_LIBS="-lwebp"
         ], [], [-lm])
       ])
-    if test x$have_webp_hdr = xyes -a x$have_webp_lib = xyes; then
+    if test x$have_webpdemux_hdr = xyes -a x$have_webpdemux_lib = xyes -a x$have_webp_hdr = xyes -a x$have_webp_lib = xyes; then
         AC_DEFINE([LOAD_WEBP])
         load_webp=1
 
         case "$host" in
             *-*-darwin*)
-                webp_lib=[`find_lib lib$webplib.dylib`]
+                webpdemux_lib=[`find_lib "libwebpdemux.[0-9]*.dylib"`]
+                webp_lib=[`find_lib "libwebp.[0-9]*.dylib"`]
+                if test x$webp_lib = x; then
+                    webpdemux_lib=[`find_lib libwebpdemux.dylib`]
+                    webp_lib=[`find_lib libwebp.dylib`]
+                fi
                 ;;
             *-*-cygwin* | *-*-mingw*)
-                webp_lib=[`find_lib "lib$webplib-*.dll"`]
+                webpdemux_lib=[`find_lib "libwebpdemux-*.dll"`]
+                webp_lib=[`find_lib "libwebp-*.dll"`]
                 ;;
             *)
-                webp_lib=[`find_lib "lib$webplib[0-9]*.so.*"`]
+                webpdemux_lib=[`find_lib "libwebpdemux[0-9]*.so.*"`]
+                webp_lib=[`find_lib "libwebp[0-9]*.so.*"`]
                 if test x$webp_lib = x; then
-                    webp_lib=[`find_lib "lib$webplib.so.*"`]
+                    webpdemux_lib=[`find_lib "libwebpdemux.so.*"`]
+                    webp_lib=[`find_lib "libwebp.so.*"`]
                 fi
                 ;;
         esac
@@ -649,28 +729,32 @@ if test x$enable_qoi = xyes; then
 fi
 AC_SUBST([LOAD_QOI], $load_qoi)
 
-if test x$enable_webp = xyes -a x$have_webp_hdr = xyes -a x$have_webp_lib = xyes; then
+if test x$enable_webp = xyes -a x$have_webp_hdr = xyes -a x$have_webp_lib -a x$have_webpdemux_hdr = xyes -a x$have_webpdemux_lib = xyes; then
     CFLAGS="$LIBWEBP_CFLAGS $CFLAGS"
-    if test x$enable_webp_shared = xyes && test x$webp_lib != x; then
+    if test x$enable_webp_shared != xno && test x$webp_lib != x; then
         echo "-- dynamic libwebp -> $webp_lib"
         AC_DEFINE_UNQUOTED(LOAD_WEBP_DYNAMIC, "$webp_lib")
+        echo "-- dynamic libwebpdemux -> $webpdemux_lib"
+        AC_DEFINE_UNQUOTED(LOAD_WEBPDEMUX_DYNAMIC, "$webpdemux_lib")
     else
-        IMG_LIBS="$LIBWEBP_LIBS $IMG_LIBS"
+        IMG_LIBS="$LIBWEBPDEMUX_LIBS $LIBWEBP_LIBS $IMG_LIBS"
+        CMAKE_LIBS="WebP::webp;WebP::webpdemux;$CMAKE_LIBS"
         if test x$have_webp_pc = xyes; then
-            PC_REQUIRES="lib$webplib $PC_REQUIRES"
+            PC_REQUIRES="libwebpdemux libwebp $PC_REQUIRES"
         else
-            PC_LIBS="$LIBWEBP_LIBS $PC_LIBS"
+            PC_LIBS="$LIBWEBPDEMUX_LIBS $LIBWEBP_LIBS $PC_LIBS"
         fi
     fi
 fi
 
 if test x$enable_avif = xyes -a x$have_avif_hdr = xyes -a x$have_avif_lib = xyes; then
     CFLAGS="$LIBAVIF_CFLAGS $CFLAGS"
-    if test x$enable_avif_shared = xyes && test x$avif_lib != x; then
+    if test x$enable_avif_shared != xno && test x$avif_lib != x; then
         echo "-- dynamic libavif -> $avif_lib"
         AC_DEFINE_UNQUOTED(LOAD_AVIF_DYNAMIC, "$avif_lib")
     else
         IMG_LIBS="$LIBAVIF_LIBS $IMG_LIBS"
+        CMAKE_LIBS="avif;$CMAKE_LIBS"
         if test x$have_avif_pc = xyes; then
             PC_REQUIRES="libavif $PC_REQUIRES"
         else
@@ -680,7 +764,7 @@ if test x$enable_avif = xyes -a x$have_avif_hdr = xyes -a x$have_avif_lib = xyes
 fi
 if test x$enable_tif = xyes -a x$have_tif_hdr = xyes -a x$have_tif_lib = xyes; then
     CFLAGS="$LIBTIFF_CFLAGS $CFLAGS"
-    if test x$enable_tif_shared = xyes && test x$tif_lib != x; then
+    if test x$enable_tif_shared != xno && test x$tif_lib != x; then
         echo "-- dynamic libtiff -> $tif_lib"
         AC_DEFINE_UNQUOTED(LOAD_TIF_DYNAMIC, "$tif_lib")
     else
@@ -689,6 +773,7 @@ if test x$enable_tif = xyes -a x$have_tif_hdr = xyes -a x$have_tif_lib = xyes; t
             jpg_lib=''
         fi
         IMG_LIBS="$LIBTIFF_LIBS $IMG_LIBS"
+        CMAKE_LIBS="TIFF::TIFF;$CMAKE_LIBS"
         if test x$have_tif_pc = xyes; then
             PC_REQUIRES="libtiff-4 $PC_REQUIRES"
         else
@@ -698,11 +783,12 @@ if test x$enable_tif = xyes -a x$have_tif_hdr = xyes -a x$have_tif_lib = xyes; t
 fi
 if test x$enable_jpg = xyes -a x$have_jpg_hdr = xyes -a x$have_jpg_lib = xyes; then
     CFLAGS="$LIBJPEG_CFLAGS $CFLAGS"
-    if test x$enable_jpg_shared = xyes && test x$jpg_lib != x; then
+    if test x$enable_jpg_shared != xno && test x$jpg_lib != x; then
         echo "-- dynamic libjpeg -> $jpg_lib"
         AC_DEFINE_UNQUOTED(LOAD_JPG_DYNAMIC, "$jpg_lib")
     else
         IMG_LIBS="$LIBJPEG_LIBS $IMG_LIBS"
+        CMAKE_LIBS="JPEG::JPEG;$CMAKE_LIBS"
         if test x$have_jpg_pc = xyes; then
             PC_REQUIRES="libjpeg $PC_REQUIRES"
         else
@@ -712,11 +798,12 @@ if test x$enable_jpg = xyes -a x$have_jpg_hdr = xyes -a x$have_jpg_lib = xyes; t
 fi
 if test x$enable_jxl = xyes -a x$have_jxl_hdr = xyes -a x$have_jxl_lib = xyes; then
     CFLAGS="$LIBJXL_CFLAGS $CFLAGS"
-    if test x$enable_jxl_shared = xyes && test x$jxl_lib != x; then
+    if test x$enable_jxl_shared != xno && test x$jxl_lib != x; then
         echo "-- dynamic libjxl -> $jxl_lib"
         AC_DEFINE_UNQUOTED(LOAD_JXL_DYNAMIC, "$jxl_lib")
     else
         IMG_LIBS="$LIBJXL_LIBS $IMG_LIBS"
+        CMAKE_LIBS="libjxl::libjxl;$CMAKE_LIBS"
         if test x$have_jxl_pc = xyes; then
             PC_REQUIRES="libjxl $PC_REQUIRES"
         else
@@ -726,11 +813,12 @@ if test x$enable_jxl = xyes -a x$have_jxl_hdr = xyes -a x$have_jxl_lib = xyes; t
 fi
 if test x$enable_png = xyes -a x$have_png_hdr = xyes -a x$have_png_lib = xyes; then
     CFLAGS="$LIBPNG_CFLAGS $CFLAGS"
-    if test x$enable_png_shared = xyes && test x$png_lib != x; then
+    if test x$enable_png_shared != xno && test x$png_lib != x; then
         echo "-- dynamic libpng -> $png_lib"
         AC_DEFINE_UNQUOTED(LOAD_PNG_DYNAMIC, "$png_lib")
     else
         IMG_LIBS="$LIBPNG_LIBS $IMG_LIBS"
+        CMAKE_LIBS="PNG::PNG;$CMAKE_LIBS"
         if test x$have_png_pc = xyes; then
             PC_REQUIRES="libpng $PC_REQUIRES"
         else
@@ -754,6 +842,7 @@ else
 fi
 
 AC_SUBST([IMG_LIBS])
+AC_SUBST([CMAKE_LIBS])
 AC_SUBST([PC_LIBS])
 AC_SUBST([PC_REQUIRES])
 
@@ -761,9 +850,8 @@ AM_CONDITIONAL([BUILD_TESTS], [test "x$enable_tests" = xyes])
 AM_CONDITIONAL([INSTALL_TESTS], [test "x$enable_installed_tests" = xyes])
 
 dnl Calculate the location of the prefix, relative to the cmake folder
-eval pkg_prefix=$prefix
-eval pkg_cmakedir=$libdir/cmake/SDL2_image
-cmake_prefix_relpath="$(echo -n "$pkg_cmakedir" | sed -E "s#^$pkg_prefix##" | sed -E "s#[A-Za-z0-9_ .-]+#..#g")"
+pkg_cmakedir='$libdir/cmake/SDL2_image'
+AX_COMPUTE_RELATIVE_PATHS([pkg_cmakedir:prefix:cmake_prefix_relpath])
 AC_SUBST([cmake_prefix_relpath])
 
 dnl check for LD --no-undefined option

@@ -1,7 +1,6 @@
-/*-
- * pngstest.c
+/* pngstest.c
  *
- * Last changed in libpng 1.6.31 [July 27, 2017]
+ * Copyright (c) 2021-2026 Cosmin Truta
  * Copyright (c) 2013-2017 John Cunningham Bowler
  *
  * This code is released under the libpng license.
@@ -10,8 +9,9 @@
  *
  * Test for the PNG 'simplified' APIs.
  */
+
 #define _ISOC90_SOURCE 1
-#define MALLOC_CHECK_ 2/*glibc facility: turn on debugging*/
+#define MALLOC_CHECK_ 2 /*glibc facility: turn on debugging*/
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -37,7 +37,7 @@
 /* 1.6.1 added support for the configure test harness, which uses 77 to indicate
  * a skipped test, in earlier versions we need to succeed on a skipped test, so:
  */
-#if PNG_LIBPNG_VER >= 10601 && defined(HAVE_CONFIG_H)
+#if defined(HAVE_CONFIG_H)
 #  define SKIP 77
 #else
 #  define SKIP 0
@@ -83,7 +83,7 @@ static char tmpf[23] = "TMP";
  * Hill, "The Art of Electronics".
  */
 static void
-make_random_bytes(png_uint_32* seed, void* pv, size_t size)
+make_random_bytes(png_uint_32 *seed, void *pv, size_t size)
 {
    png_uint_32 u0 = seed[0], u1 = seed[1];
    png_bytep bytes = voidcast(png_bytep, pv);
@@ -323,18 +323,19 @@ compare_16bit(int v1, int v2, int error_limit, int multiple_algorithms)
 }
 #endif /* unused */
 
-#define USE_FILE 1       /* else memory */
-#define USE_STDIO 2      /* else use file name */
-#define STRICT 4         /* fail on warnings too */
+#define USE_FILE 1           /* else memory */
+#define USE_STDIO 2          /* else use file name */
+#define STRICT 4             /* fail on warnings too */
 #define VERBOSE 8
-#define KEEP_TMPFILES 16 /* else delete temporary files */
+#define KEEP_TMPFILES 16     /* else delete temporary files */
 #define KEEP_GOING 32
 #define ACCUMULATE 64
 #define FAST_WRITE 128
 #define sRGB_16BIT 256
-#define NO_RESEED  512   /* do not reseed on each new file */
-#define GBG_ERROR 1024   /* do not ignore the gamma+background_rgb_to_gray
-                          * libpng warning. */
+#define NO_RESEED 512        /* do not reseed on each new file */
+#define GBG_ERROR 1024       /* do not ignore the gamma+background_rgb_to_gray
+                              * warning. */
+#define NEGATIVE_STRIDE 2048 /* negate row stride for bottom-up layout */
 
 static void
 print_opts(png_uint_32 opts)
@@ -363,6 +364,8 @@ print_opts(png_uint_32 opts)
    if (opts & GBG_ERROR)
       printf(" --fault-gbg-warning");
 #endif
+   if (opts & NEGATIVE_STRIDE)
+      printf(" --negative-stride");
 }
 
 #define FORMAT_NO_CHANGE 0x80000000 /* additional flag */
@@ -475,7 +478,8 @@ typedef struct
 }
 format_list;
 
-static void format_init(format_list *pf)
+static void
+format_init(format_list *pf)
 {
    int i;
    for (i=0; i<FORMAT_SET_COUNT; ++i)
@@ -483,7 +487,8 @@ static void format_init(format_list *pf)
 }
 
 #if 0 /* currently unused */
-static void format_clear(format_list *pf)
+static void
+format_clear(format_list *pf)
 {
    int i;
    for (i=0; i<FORMAT_SET_COUNT; ++i)
@@ -491,7 +496,8 @@ static void format_clear(format_list *pf)
 }
 #endif
 
-static int format_is_initial(format_list *pf)
+static int
+format_is_initial(format_list *pf)
 {
    int i;
    for (i=0; i<FORMAT_SET_COUNT; ++i)
@@ -501,7 +507,8 @@ static int format_is_initial(format_list *pf)
    return 1;
 }
 
-static int format_set(format_list *pf, png_uint_32 format)
+static int
+format_set(format_list *pf, png_uint_32 format)
 {
    if (format < FORMAT_COUNT)
       return pf->bits[format >> 5] |= ((png_uint_32)1) << (format & 31);
@@ -510,7 +517,8 @@ static int format_set(format_list *pf, png_uint_32 format)
 }
 
 #if 0 /* currently unused */
-static int format_unset(format_list *pf, png_uint_32 format)
+static int
+format_unset(format_list *pf, png_uint_32 format)
 {
    if (format < FORMAT_COUNT)
       return pf->bits[format >> 5] &= ~((png_uint_32)1) << (format & 31);
@@ -519,13 +527,15 @@ static int format_unset(format_list *pf, png_uint_32 format)
 }
 #endif
 
-static int format_isset(format_list *pf, png_uint_32 format)
+static int
+format_isset(format_list *pf, png_uint_32 format)
 {
    return format < FORMAT_COUNT &&
       (pf->bits[format >> 5] & (((png_uint_32)1) << (format & 31))) != 0;
 }
 
-static void format_default(format_list *pf, int redundant)
+static void
+format_default(format_list *pf, int redundant)
 {
    if (redundant)
    {
@@ -595,7 +605,8 @@ newimage(Image *image)
    memset(image, 0, sizeof *image);
 }
 
-/* Reset the image to be read again - only needs to rewind the FILE* at present.
+/* Reset the image to be read again - only needs to rewind the FILE object at
+ * present.
  */
 static void
 resetimage(Image *image)
@@ -648,7 +659,8 @@ freeimage(Image *image)
 /* This is actually a re-initializer; allows an image structure to be re-used by
  * freeing everything that relates to an old image.
  */
-static void initimage(Image *image, png_uint_32 opts, const char *file_name,
+static void
+initimage(Image *image, png_uint_32 opts, const char *file_name,
    int stride_extra)
 {
    freeimage(image);
@@ -1150,7 +1162,7 @@ get_pixel(png_uint_32 format))(Pixel *p, png_const_voidp pb)
  *
  * 2) Remove color by mapping to grayscale.  (Grayscale to color is a no-op.)
  *
- * 3) Convert between 8-bit and 16-bit components.  (Both directtions are
+ * 3) Convert between 8-bit and 16-bit components.  (Both directions are
  *    relevant.)
  *
  * This gives the following base format conversion matrix:
@@ -2655,7 +2667,7 @@ compare_two_images(Image *a, Image *b, int via_linear,
        * of the loop until the end; this validates the color-mapped data to
        * ensure all pixels are valid color-map indexes.
        */
-      for (y=0, match=1; y<height && match; ++y, ppa += stridea, ppb += strideb)
+      for (y=0, match=1; y<height && match; ++y)
       {
          png_uint_32 x;
 
@@ -2673,6 +2685,19 @@ compare_two_images(Image *a, Image *b, int via_linear,
             in_use[aval] = 1;
             if (aval > amax)
                amax = aval;
+         }
+
+         /* Increment with care!
+          * With negative strides, an unguarded final increment would produce
+          * a pointer before the allocated object, which is undefined behavior.
+          * Standard C allows one-after-end pointers, not one-before-beginning
+          * pointers, and this restriction stands regardless of whether the
+          * pointers are dereferenced or not.
+          */
+         if (y+1 < height)
+         {
+            ppa += stridea;
+            ppb += strideb;
          }
       }
 
@@ -2701,7 +2726,7 @@ compare_two_images(Image *a, Image *b, int via_linear,
             {
                if ((a->opts & ACCUMULATE) == 0)
                {
-                  char pindex[9];
+                  char pindex[16];
                   sprintf(pindex, "%lu[%lu]", (unsigned long)y,
                      (unsigned long)a->image.colormap_entries);
                   logerror(a, a->file_name, ": bad pixel index: ", pindex);
@@ -2712,12 +2737,12 @@ compare_two_images(Image *a, Image *b, int via_linear,
             else if (y >= b->image.colormap_entries)
             {
                if ((b->opts & ACCUMULATE) == 0)
-                  {
-                  char pindex[9];
+               {
+                  char pindex[16];
                   sprintf(pindex, "%lu[%lu]", (unsigned long)y,
                      (unsigned long)b->image.colormap_entries);
                   logerror(b, b->file_name, ": bad pixel index: ", pindex);
-                  }
+               }
                result = 0;
             }
 
@@ -2783,7 +2808,7 @@ compare_two_images(Image *a, Image *b, int via_linear,
     * If an alpha channel has been *added* then it must have the relevant opaque
     * value (255 or 65535).
     *
-    * The fist two the tests (in the order given above) (using the boolean
+    * The first two tests (in the order given above) (using the boolean
     * equivalence !a && !b == !(a || b))
     */
    if (!(((formata ^ formatb) & PNG_FORMAT_FLAG_LINEAR) |
@@ -2820,8 +2845,11 @@ compare_two_images(Image *a, Image *b, int via_linear,
          bchannels = component_loc(bloc, formatb);
 
          /* Hence the btoa array. */
-         for (i=0; i<4; ++i) if (bloc[i] < 4)
-            btoa[bloc[i]] = aloc[i]; /* may be '4' for alpha */
+         for (i=0; i<4; ++i)
+         {
+            if (bloc[i] < 4)
+               btoa[bloc[i]] = aloc[i]; /* may be '4' for alpha */
+         }
 
          if (alpha_added)
             alpha_added = bloc[0]; /* location of alpha channel in image b */
@@ -2847,7 +2875,7 @@ compare_two_images(Image *a, Image *b, int via_linear,
       btoa[3] = btoa[2] = btoa[1] = btoa[0] = 4; /* 4 == not present */
    }
 
-   for (y=0; y<height; ++y, rowa += stridea, rowb += strideb)
+   for (y=0; y<height; ++y)
    {
       png_const_bytep ppa, ppb;
       png_uint_32 x;
@@ -2928,6 +2956,16 @@ compare_two_images(Image *a, Image *b, int via_linear,
           */
          if (!cmppixel(&tr, psa, psb, x, y) && (a->opts & KEEP_GOING) == 0)
             return 0; /* error case */
+      }
+
+      /* Increment with care!
+       * (See the previous comment about preventing negative strides from
+       * causing undefined behavior.)
+       */
+      if (y+1 < height)
+      {
+         rowa += stridea;
+         rowb += strideb;
       }
    }
 
@@ -3029,6 +3067,9 @@ read_file(Image *image, png_uint_32 format, png_const_colorp background)
 
       image->stride = PNG_IMAGE_ROW_STRIDE(image->image) + image->stride_extra;
       allocbuffer(image);
+
+      if (image->opts & NEGATIVE_STRIDE)
+         image->stride = -image->stride;
 
       result = png_image_finish_read(&image->image, background,
          image->buffer+16, (png_int_32)image->stride, image->colormap);
@@ -3209,10 +3250,10 @@ write_one_file(Image *output, Image *image, int convert_to_8bit)
    else if (image->opts & USE_FILE)
    {
 #ifdef PNG_SIMPLIFIED_WRITE_STDIO_SUPPORTED
-      static int counter = 0;
+      static unsigned int counter = 0;
       char name[32];
 
-      sprintf(name, "%s%d.png", tmpf, ++counter);
+      sprintf(name, "%s%u.png", tmpf, ++counter);
 
       if (png_image_write_to_file(&image->image, name, convert_to_8bit,
          image->buffer+16, (png_int_32)image->stride, image->colormap))
@@ -3496,7 +3537,7 @@ main(int argc, char **argv)
    int retval = 0;
    int c;
 
-#if PNG_LIBPNG_VER >= 10700
+#if PNG_LIBPNG_VER == 10700
       /* This error should not exist in 1.7 or later: */
       opts |= GBG_ERROR;
 #endif
@@ -3567,6 +3608,35 @@ main(int argc, char **argv)
          opts |= NO_RESEED;
       else if (strcmp(arg, "--fault-gbg-warning") == 0)
          opts |= GBG_ERROR;
+      else if (strcmp(arg, "--negative-stride") == 0)
+         opts |= NEGATIVE_STRIDE;
+      else if (strcmp(arg, "--stride-extra") == 0)
+      {
+         if (c+1 < argc)
+         {
+            char *ep;
+            unsigned long val = strtoul(argv[++c], &ep, 0);
+
+            if (ep > argv[c] && *ep == 0 && val <= 65535)
+               stride_extra = (int)val;
+
+            else
+            {
+               fflush(stdout);
+               fprintf(stderr, "%s: bad argument for --stride-extra: %s\n",
+                  argv[0], argv[c]);
+               exit(99);
+            }
+         }
+
+         else
+         {
+            fflush(stdout);
+            fprintf(stderr, "%s: missing argument for --stride-extra\n",
+               argv[0]);
+            exit(99);
+         }
+      }
       else if (strcmp(arg, "--tmpfile") == 0)
       {
          if (c+1 < argc)
@@ -3819,7 +3889,8 @@ main(int argc, char **argv)
 }
 
 #else /* !PNG_SIMPLIFIED_READ_SUPPORTED */
-int main(void)
+int
+main(void)
 {
    fprintf(stderr, "pngstest: no read support in libpng, test skipped\n");
    /* So the test is skipped: */
