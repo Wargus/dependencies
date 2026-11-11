@@ -184,13 +184,15 @@ macro(vendored_vorbis)
     set(VORBIS_FOUND)
     set(VORBIS_INCLUDE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_mixer/external/vorbis/include")
     if(MSVC)
+      set(VORBISFILE_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/$<CONFIGURATION>/vorbisfile.lib")
       set(VORBIS_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/$<CONFIGURATION>/vorbis.lib"
         "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/$<CONFIGURATION>/vorbisenc.lib"
-        "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/$<CONFIGURATION>/vorbisfile.lib" ${OGG_LIBRARY})
+        "${VORBISFILE_LIBRARY}" ${OGG_LIBRARY})
     else()
+      set(VORBISFILE_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/libvorbisfile.a")
       set(VORBIS_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/libvorbis.a"
         "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/libvorbisenc.a"
-        "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/libvorbisfile.a" ${OGG_LIBRARY})
+        "${VORBISFILE_LIBRARY}" ${OGG_LIBRARY})
     endif()
   endif()
 endmacro()
@@ -340,32 +342,50 @@ macro(vendored_sdl_mixer)
   if(NOT DEFINED USE_VENDORED_SDL_MIXER)
     set(USE_VENDORED_SDL_MIXER true)
     vendored_sdl()
+    # The engine already builds Ogg and Vorbis from this same tree, and it links them directly for
+    # movie playback, so mixer uses those builds instead of its own copies. Otherwise a binary ends
+    # up with two libvorbis copies and the linker silently picks one of each duplicated symbol.
+    vendored_vorbis()
 
+    # Without SDL2MIXER_VENDORED every enabled format needs its library available, which is why the
+    # ones that are not wanted here are turned off explicitly rather than left to be found:
+    # WavPack has no finder in the SDL2_mixer tree, and FluidSynth becomes selectable (and
+    # defaults to on) only in this mode. Timidity stays, since it is built from sources inside
+    # SDL2_mixer itself.
     ExternalProject_Add(SDL2_mixer
       SOURCE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_mixer"
       PREFIX "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/"
       INSTALL_COMMAND ""
-      CMAKE_ARGS ${STRATAGUS_EXTERNAL_CMAKE_ARGS} -DSDL2MIXER_VENDORED=ON -DBUILD_SHARED_LIBS=OFF -DSDL2MIXER_DEPS_SHARED=OFF
+      CMAKE_ARGS ${STRATAGUS_EXTERNAL_CMAKE_ARGS} -DSDL2MIXER_VENDORED=OFF -DBUILD_SHARED_LIBS=OFF -DSDL2MIXER_DEPS_SHARED=OFF
       -DSDL2MIXER_SAMPLES=OFF
       -DSDL2MIXER_FLAC=OFF
       -DSDL2MIXER_OPUS=OFF
       -DSDL2MIXER_MOD=OFF
-      -DSDL2MIXER_MIDI=ON
+      -DSDL2MIXER_MIDI=ON -DSDL2MIXER_MIDI_FLUIDSYNTH=OFF
+      -DSDL2MIXER_WAVPACK=OFF
       -DSDL2MIXER_VORBIS=VORBISFILE -DSDL2MIXER_VORBIS_VORBISFILE_SHARED=OFF
       CMAKE_CACHE_ARGS -DSDL2_FOUND:STRING=1 -DSDL2_INCLUDE_DIR:PATH=${SDL2_INCLUDE_DIR}
       -DSDL2_LIBRARY:FILEPATH=${SDL2_LIBRARY} -DSDL2_MAIN_LIBRARY:FILEPATH=${SDL2main_LIBRARY}
       -DSDL2_DIR:PATH="${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL"
+      -DVorbis_vorbisfile_LIBRARY:FILEPATH=${VORBISFILE_LIBRARY}
+      -DVorbis_vorbisfile_INCLUDE_PATH:PATH=${VORBIS_INCLUDE_DIR}
+      # Vorbisfile pulls in ogg/ogg.h, and the Ogg headers are not next to the Vorbis ones in
+      # this tree, so the Ogg include directory travels along as an extra flag for that one
+      # dependency target.
+      -DVorbis_vorbisfile_COMPILE_OPTIONS:STRING=-I${OGG_INCLUDE_DIR}
       -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
     )
-    add_dependencies(SDL2_mixer SDL2)
+    add_dependencies(SDL2_mixer SDL2 vorbis)
     set(SDL2_MIXER_FOUND TRUE)
     set(SDL2_MIXER_INCLUDE_DIRS "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_mixer/include")
     if(MSVC)
-      set(SDL2_MIXER_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/src/SDL2_mixer-build/$<CONFIGURATION>/SDL2_mixer-static$<$<CONFIG:Debug>:d>.lib")
+      set(SDL2_MIXER_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/src/SDL2_mixer-build/$<CONFIGURATION>/SDL2_mixer-static$<$<CONFIG:Debug>:d>.lib"
+        "${VORBISFILE_LIBRARY}")
     else()
-      # SDL2_mixer links its vendored WavPack statically, so it has to be on the link line as well
+      # SDL2_mixer links Vorbisfile statically, so it has to be on the link line as well. Vorbis
+      # and Ogg itself are already linked by the engine, and have to stay behind this entry.
       set(SDL2_MIXER_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/src/SDL2_mixer-build/libSDL2_mixer.a"
-        "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/src/SDL2_mixer-build/external/wavpack/libwavpack.a")
+        "${VORBISFILE_LIBRARY}")
     endif()
   endif()
 endmacro()
