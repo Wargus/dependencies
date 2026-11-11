@@ -417,7 +417,9 @@ macro(vendored_sdl_mixer)
     if(MSVC)
       set(SDL2_MIXER_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/src/SDL2_mixer-build/$<CONFIGURATION>/SDL2_mixer-static$<$<CONFIG:Debug>:d>.lib")
     else()
-      set(SDL2_MIXER_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/src/SDL2_mixer-build/libSDL2_mixer.a")
+      # SDL2_mixer links its vendored WavPack statically, so it has to be on the link line as well
+      set(SDL2_MIXER_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/src/SDL2_mixer-build/libSDL2_mixer.a"
+        "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/src/SDL2_mixer-build/external/wavpack/libwavpack.a")
     endif()
   endif()
 endmacro()

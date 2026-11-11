@@ -1,120 +1,11 @@
 /*
 FLAC audio decoder. Choice of public domain or MIT-0. See license statements at the end of this file.
-dr_flac - v0.12.38 - 2022-04-10
+dr_flac - v0.13.4 - TBD
 
 David Reid - mackron@gmail.com
 
 GitHub: https://github.com/mackron/dr_libs
 */
-
-/*
-RELEASE NOTES - v0.12.0
-=======================
-Version 0.12.0 has breaking API changes including changes to the existing API and the removal of deprecated APIs.
-
-
-Improved Client-Defined Memory Allocation
------------------------------------------
-The main change with this release is the addition of a more flexible way of implementing custom memory allocation routines. The
-existing system of DRFLAC_MALLOC, DRFLAC_REALLOC and DRFLAC_FREE are still in place and will be used by default when no custom
-allocation callbacks are specified.
-
-To use the new system, you pass in a pointer to a drflac_allocation_callbacks object to drflac_open() and family, like this:
-
-    void* my_malloc(size_t sz, void* pUserData)
-    {
-        return malloc(sz);
-    }
-    void* my_realloc(void* p, size_t sz, void* pUserData)
-    {
-        return realloc(p, sz);
-    }
-    void my_free(void* p, void* pUserData)
-    {
-        free(p);
-    }
-
-    ...
-
-    drflac_allocation_callbacks allocationCallbacks;
-    allocationCallbacks.pUserData = &myData;
-    allocationCallbacks.onMalloc  = my_malloc;
-    allocationCallbacks.onRealloc = my_realloc;
-    allocationCallbacks.onFree    = my_free;
-    drflac* pFlac = drflac_open_file("my_file.flac", &allocationCallbacks);
-
-The advantage of this new system is that it allows you to specify user data which will be passed in to the allocation routines.
-
-Passing in null for the allocation callbacks object will cause dr_flac to use defaults which is the same as DRFLAC_MALLOC,
-DRFLAC_REALLOC and DRFLAC_FREE and the equivalent of how it worked in previous versions.
-
-Every API that opens a drflac object now takes this extra parameter. These include the following:
-
-    drflac_open()
-    drflac_open_relaxed()
-    drflac_open_with_metadata()
-    drflac_open_with_metadata_relaxed()
-    drflac_open_file()
-    drflac_open_file_with_metadata()
-    drflac_open_memory()
-    drflac_open_memory_with_metadata()
-    drflac_open_and_read_pcm_frames_s32()
-    drflac_open_and_read_pcm_frames_s16()
-    drflac_open_and_read_pcm_frames_f32()
-    drflac_open_file_and_read_pcm_frames_s32()
-    drflac_open_file_and_read_pcm_frames_s16()
-    drflac_open_file_and_read_pcm_frames_f32()
-    drflac_open_memory_and_read_pcm_frames_s32()
-    drflac_open_memory_and_read_pcm_frames_s16()
-    drflac_open_memory_and_read_pcm_frames_f32()
-
-
-
-Optimizations
--------------
-Seeking performance has been greatly improved. A new binary search based seeking algorithm has been introduced which significantly
-improves performance over the brute force method which was used when no seek table was present. Seek table based seeking also takes
-advantage of the new binary search seeking system to further improve performance there as well. Note that this depends on CRC which
-means it will be disabled when DR_FLAC_NO_CRC is used.
-
-The SSE4.1 pipeline has been cleaned up and optimized. You should see some improvements with decoding speed of 24-bit files in
-particular. 16-bit streams should also see some improvement.
-
-drflac_read_pcm_frames_s16() has been optimized. Previously this sat on top of drflac_read_pcm_frames_s32() and performed it's s32
-to s16 conversion in a second pass. This is now all done in a single pass. This includes SSE2 and ARM NEON optimized paths.
-
-A minor optimization has been implemented for drflac_read_pcm_frames_s32(). This will now use an SSE2 optimized pipeline for stereo
-channel reconstruction which is the last part of the decoding process.
-
-The ARM build has seen a few improvements. The CLZ (count leading zeroes) and REV (byte swap) instructions are now used when
-compiling with GCC and Clang which is achieved using inline assembly. The CLZ instruction requires ARM architecture version 5 at
-compile time and the REV instruction requires ARM architecture version 6.
-
-An ARM NEON optimized pipeline has been implemented. To enable this you'll need to add -mfpu=neon to the command line when compiling.
-
-
-Removed APIs
-------------
-The following APIs were deprecated in version 0.11.0 and have been completely removed in version 0.12.0:
-
-    drflac_read_s32()                   -> drflac_read_pcm_frames_s32()
-    drflac_read_s16()                   -> drflac_read_pcm_frames_s16()
-    drflac_read_f32()                   -> drflac_read_pcm_frames_f32()
-    drflac_seek_to_sample()             -> drflac_seek_to_pcm_frame()
-    drflac_open_and_decode_s32()        -> drflac_open_and_read_pcm_frames_s32()
-    drflac_open_and_decode_s16()        -> drflac_open_and_read_pcm_frames_s16()
-    drflac_open_and_decode_f32()        -> drflac_open_and_read_pcm_frames_f32()
-    drflac_open_and_decode_file_s32()   -> drflac_open_file_and_read_pcm_frames_s32()
-    drflac_open_and_decode_file_s16()   -> drflac_open_file_and_read_pcm_frames_s16()
-    drflac_open_and_decode_file_f32()   -> drflac_open_file_and_read_pcm_frames_f32()
-    drflac_open_and_decode_memory_s32() -> drflac_open_memory_and_read_pcm_frames_s32()
-    drflac_open_and_decode_memory_s16() -> drflac_open_memory_and_read_pcm_frames_s16()
-    drflac_open_and_decode_memory_f32() -> drflac_open_memroy_and_read_pcm_frames_f32()
-
-Prior versions of dr_flac operated on a per-sample basis whereas now it operates on PCM frames. The removed APIs all relate
-to the old per-sample APIs. You now need to use the "pcm_frame" versions.
-*/
-
 
 /*
 Introduction
@@ -179,7 +70,7 @@ reports metadata to the application through the use of a callback, and every met
 
 The main opening APIs (`drflac_open()`, etc.) will fail if the header is not present. The presents a problem in certain scenarios such as broadcast style
 streams or internet radio where the header may not be present because the user has started playback mid-stream. To handle this, use the relaxed APIs:
-    
+
     `drflac_open_relaxed()`
     `drflac_open_with_metadata_relaxed()`
 
@@ -210,6 +101,9 @@ Build Options
 #define DR_FLAC_NO_SIMD
   Disables SIMD optimizations (SSE on x86/x64 architectures, NEON on ARM architectures). Use this if you are having compatibility issues with your compiler.
 
+#define DR_FLAC_NO_WCHAR
+  Disables all functions ending with `_w`. Use this if your compiler does not provide wchar.h. Not required if DR_FLAC_NO_STDIO is also defined.
+
 
 
 Notes
@@ -231,13 +125,13 @@ extern "C" {
 #define DRFLAC_XSTRINGIFY(x)     DRFLAC_STRINGIFY(x)
 
 #define DRFLAC_VERSION_MAJOR     0
-#define DRFLAC_VERSION_MINOR     12
-#define DRFLAC_VERSION_REVISION  38
+#define DRFLAC_VERSION_MINOR     13
+#define DRFLAC_VERSION_REVISION  4
 #define DRFLAC_VERSION_STRING    DRFLAC_XSTRINGIFY(DRFLAC_VERSION_MAJOR) "." DRFLAC_XSTRINGIFY(DRFLAC_VERSION_MINOR) "." DRFLAC_XSTRINGIFY(DRFLAC_VERSION_REVISION)
 
 #include <stddef.h> /* For size_t. */
 
-/* Sized types. */
+/* Sized Types */
 typedef   signed char           drflac_int8;
 typedef unsigned char           drflac_uint8;
 typedef   signed short          drflac_int16;
@@ -270,7 +164,9 @@ typedef drflac_uint8            drflac_bool8;
 typedef drflac_uint32           drflac_bool32;
 #define DRFLAC_TRUE             1
 #define DRFLAC_FALSE            0
+/* End Sized Types */
 
+/* Decorations */
 #if !defined(DRFLAC_API)
     #if defined(DRFLAC_DLL)
         #if defined(_WIN32)
@@ -300,6 +196,7 @@ typedef drflac_uint32           drflac_bool32;
         #define DRFLAC_PRIVATE static
     #endif
 #endif
+/* End Decorations */
 
 #if defined(_MSC_VER) && _MSC_VER >= 1700   /* Visual Studio 2012 */
     #define DRFLAC_DEPRECATED       __declspec(deprecated)
@@ -318,6 +215,16 @@ typedef drflac_uint32           drflac_bool32;
 DRFLAC_API void drflac_version(drflac_uint32* pMajor, drflac_uint32* pMinor, drflac_uint32* pRevision);
 DRFLAC_API const char* drflac_version_string(void);
 
+/* Allocation Callbacks */
+typedef struct
+{
+    void* pUserData;
+    void* (* onMalloc)(size_t sz, void* pUserData);
+    void* (* onRealloc)(void* p, size_t sz, void* pUserData);
+    void  (* onFree)(void* p, void* pUserData);
+} drflac_allocation_callbacks;
+/* End Allocation Callbacks */
+
 /*
 As data is read from the client it is placed into an internal buffer for fast access. This controls the size of that buffer. Larger values means more speed,
 but also more memory. In my testing there is diminishing returns after about 4KB, but you can fiddle with this to suit your own needs. Must be a multiple of 8.
@@ -326,10 +233,21 @@ but also more memory. In my testing there is diminishing returns after about 4KB
 #define DR_FLAC_BUFFER_SIZE   4096
 #endif
 
-/* Check if we can enable 64-bit optimizations. */
+
+/* Architecture Detection */
 #if defined(_WIN64) || defined(_LP64) || defined(__LP64__)
 #define DRFLAC_64BIT
 #endif
+
+#if defined(__x86_64__) || (defined(_M_X64) && !defined(_M_ARM64EC))
+    #define DRFLAC_X64
+#elif defined(__i386) || defined(_M_IX86)
+    #define DRFLAC_X86
+#elif defined(__arm__) || defined(_M_ARM) || defined(__arm64) || defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
+    #define DRFLAC_ARM
+#endif
+/* End Architecture Detection */
+
 
 #ifdef DRFLAC_64BIT
 typedef drflac_uint64 drflac_cache_t;
@@ -379,19 +297,18 @@ typedef enum
 
 typedef enum
 {
-    drflac_seek_origin_start,
-    drflac_seek_origin_current
+    DRFLAC_SEEK_SET,
+    DRFLAC_SEEK_CUR,
+    DRFLAC_SEEK_END
 } drflac_seek_origin;
 
-/* Packing is important on this structure because we map this directly to the raw data within the SEEKTABLE metadata block. */
-#pragma pack(2)
+/* The order of members in this structure is important because we map this directly to the raw data within the SEEKTABLE metadata block. */
 typedef struct
 {
     drflac_uint64 firstPCMFrame;
     drflac_uint64 flacFrameOffset;   /* The offset from the first byte of the header of the first frame. */
     drflac_uint16 pcmFrameCount;
 } drflac_seekpoint;
-#pragma pack()
 
 typedef struct
 {
@@ -414,15 +331,18 @@ typedef struct
     */
     drflac_uint32 type;
 
+    /* The size in bytes of the block and the buffer pointed to by pRawData if it's non-NULL. */
+    drflac_uint32 rawDataSize;
+
+    /* The offset in the stream of the raw data. */
+    drflac_uint64 rawDataOffset;
+
     /*
     A pointer to the raw data. This points to a temporary buffer so don't hold on to it. It's best to
     not modify the contents of this buffer. Use the structures below for more meaningful and structured
     information about the metadata. It's possible for this to be null.
     */
     const void* pRawData;
-
-    /* The size in bytes of the block and the buffer pointed to by pRawData if it's non-NULL. */
-    drflac_uint32 rawDataSize;
 
     union
     {
@@ -475,6 +395,7 @@ typedef struct
             drflac_uint32 colorDepth;
             drflac_uint32 indexColorCount;
             drflac_uint32 pictureDataSize;
+            drflac_uint64 pictureDataOffset;  /* Offset from the start of the stream. */
             const drflac_uint8* pPictureData;
         } picture;
     } data;
@@ -522,7 +443,7 @@ offset (in)
     The number of bytes to move, relative to the origin. Will never be negative.
 
 origin (in)
-    The origin of the seek - the current position or the start of the stream.
+    The origin of the seek - the current position, the start of the stream, or the end of the stream.
 
 
 Return Value
@@ -532,13 +453,31 @@ Whether or not the seek was successful.
 
 Remarks
 -------
-The offset will never be negative. Whether or not it is relative to the beginning or current position is determined by the "origin" parameter which will be
-either drflac_seek_origin_start or drflac_seek_origin_current.
+Seeking relative to the start and the current position must always be supported. If seeking from the end of the stream is not supported, return DRFLAC_FALSE.
 
 When seeking to a PCM frame using drflac_seek_to_pcm_frame(), dr_flac may call this with an offset beyond the end of the FLAC stream. This needs to be detected
 and handled by returning DRFLAC_FALSE.
 */
 typedef drflac_bool32 (* drflac_seek_proc)(void* pUserData, int offset, drflac_seek_origin origin);
+
+/*
+Callback for when the current position in the stream needs to be retrieved.
+
+
+Parameters
+----------
+pUserData (in)
+    The user data that was passed to drflac_open() and family.
+
+pCursor (out)
+    A pointer to a variable to receive the current position in the stream.
+
+
+Return Value
+------------
+Whether or not the operation was successful.
+*/
+typedef drflac_bool32 (* drflac_tell_proc)(void* pUserData, drflac_int64* pCursor);
 
 /*
 Callback for when a metadata block is read.
@@ -561,14 +500,6 @@ will be set to one of the DRFLAC_METADATA_BLOCK_TYPE_* tokens.
 typedef void (* drflac_meta_proc)(void* pUserData, drflac_metadata* pMetadata);
 
 
-typedef struct
-{
-    void* pUserData;
-    void* (* onMalloc)(size_t sz, void* pUserData);
-    void* (* onRealloc)(void* p, size_t sz, void* pUserData);
-    void  (* onFree)(void* p, void* pUserData);
-} drflac_allocation_callbacks;
-
 /* Structure for internal use. Only used for decoders opened with drflac_open_memory. */
 typedef struct
 {
@@ -585,6 +516,9 @@ typedef struct
 
     /* The function to call when the current read position needs to be moved. */
     drflac_seek_proc onSeek;
+
+    /* The function to call when the current read position needs to be retrieved. */
+    drflac_tell_proc onTell;
 
     /* The user data to pass around to onRead and onSeek. */
     void* pUserData;
@@ -811,7 +745,7 @@ drflac_open_memory()
 drflac_open_with_metadata()
 drflac_close()
 */
-DRFLAC_API drflac* drflac_open(drflac_read_proc onRead, drflac_seek_proc onSeek, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks);
+DRFLAC_API drflac* drflac_open(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks);
 
 /*
 Opens a FLAC stream with relaxed validation of the header block.
@@ -852,7 +786,7 @@ force your `onRead` callback to return 0, which dr_flac will use as an indicator
 
 Use `drflac_open_with_metadata_relaxed()` if you need access to metadata.
 */
-DRFLAC_API drflac* drflac_open_relaxed(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_container container, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks);
+DRFLAC_API drflac* drflac_open_relaxed(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, drflac_container container, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks);
 
 /*
 Opens a FLAC decoder and notifies the caller of the metadata chunks (album art, etc.).
@@ -909,7 +843,7 @@ drflac_open_memory_with_metadata()
 drflac_open()
 drflac_close()
 */
-DRFLAC_API drflac* drflac_open_with_metadata(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_meta_proc onMeta, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks);
+DRFLAC_API drflac* drflac_open_with_metadata(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, drflac_meta_proc onMeta, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks);
 
 /*
 The same as drflac_open_with_metadata(), except attempts to open the stream even when a header block is not present.
@@ -919,7 +853,7 @@ See Also
 drflac_open_with_metadata()
 drflac_open_relaxed()
 */
-DRFLAC_API drflac* drflac_open_with_metadata_relaxed(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_meta_proc onMeta, drflac_container container, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks);
+DRFLAC_API drflac* drflac_open_with_metadata_relaxed(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, drflac_meta_proc onMeta, drflac_container container, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks);
 
 /*
 Closes the given FLAC decoder.
@@ -1217,13 +1151,13 @@ read samples into a dynamically sized buffer on the heap until no samples are le
 
 Do not call this function on a broadcast type of stream (like internet radio streams and whatnot).
 */
-DRFLAC_API drflac_int32* drflac_open_and_read_pcm_frames_s32(drflac_read_proc onRead, drflac_seek_proc onSeek, void* pUserData, unsigned int* channels, unsigned int* sampleRate, drflac_uint64* totalPCMFrameCount, const drflac_allocation_callbacks* pAllocationCallbacks);
+DRFLAC_API drflac_int32* drflac_open_and_read_pcm_frames_s32(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, void* pUserData, unsigned int* channels, unsigned int* sampleRate, drflac_uint64* totalPCMFrameCount, const drflac_allocation_callbacks* pAllocationCallbacks);
 
 /* Same as drflac_open_and_read_pcm_frames_s32(), except returns signed 16-bit integer samples. */
-DRFLAC_API drflac_int16* drflac_open_and_read_pcm_frames_s16(drflac_read_proc onRead, drflac_seek_proc onSeek, void* pUserData, unsigned int* channels, unsigned int* sampleRate, drflac_uint64* totalPCMFrameCount, const drflac_allocation_callbacks* pAllocationCallbacks);
+DRFLAC_API drflac_int16* drflac_open_and_read_pcm_frames_s16(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, void* pUserData, unsigned int* channels, unsigned int* sampleRate, drflac_uint64* totalPCMFrameCount, const drflac_allocation_callbacks* pAllocationCallbacks);
 
 /* Same as drflac_open_and_read_pcm_frames_s32(), except returns 32-bit floating-point samples. */
-DRFLAC_API float* drflac_open_and_read_pcm_frames_f32(drflac_read_proc onRead, drflac_seek_proc onSeek, void* pUserData, unsigned int* channels, unsigned int* sampleRate, drflac_uint64* totalPCMFrameCount, const drflac_allocation_callbacks* pAllocationCallbacks);
+DRFLAC_API float* drflac_open_and_read_pcm_frames_f32(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, void* pUserData, unsigned int* channels, unsigned int* sampleRate, drflac_uint64* totalPCMFrameCount, const drflac_allocation_callbacks* pAllocationCallbacks);
 
 #ifndef DR_FLAC_NO_STDIO
 /* Same as drflac_open_and_read_pcm_frames_s32() except opens the decoder from a file. */
@@ -1280,15 +1214,13 @@ typedef struct
     const char* pRunningData;
 } drflac_cuesheet_track_iterator;
 
-/* Packing is important on this structure because we map this directly to the raw data within the CUESHEET metadata block. */
-#pragma pack(4)
+/* The order of members here is important because we map this directly to the raw data within the CUESHEET metadata block. */
 typedef struct
 {
     drflac_uint64 offset;
     drflac_uint8 index;
     drflac_uint8 reserved[3];
 } drflac_cuesheet_track_index;
-#pragma pack()
 
 typedef struct
 {
@@ -1352,6 +1284,7 @@ DRFLAC_API drflac_bool32 drflac_next_cuesheet_track(drflac_cuesheet_track_iterat
 #include <stdlib.h>
 #include <string.h>
 
+/* Inline */
 #ifdef _MSC_VER
     #define DRFLAC_INLINE __forceinline
 #elif defined(__GNUC__)
@@ -1378,15 +1311,7 @@ DRFLAC_API drflac_bool32 drflac_next_cuesheet_track(drflac_cuesheet_track_iterat
 #else
     #define DRFLAC_INLINE
 #endif
-
-/* CPU architecture. */
-#if defined(__x86_64__) || defined(_M_X64)
-    #define DRFLAC_X64
-#elif defined(__i386) || defined(_M_IX86)
-    #define DRFLAC_X86
-#elif defined(__arm__) || defined(_M_ARM) || defined(__arm64) || defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64)
-    #define DRFLAC_ARM
-#endif
+/* End Inline */
 
 /*
 Intrinsics Support
@@ -1515,9 +1440,7 @@ static DRFLAC_INLINE drflac_bool32 drflac_has_sse41(void)
 {
 #if defined(DRFLAC_SUPPORT_SSE41)
     #if (defined(DRFLAC_X64) || defined(DRFLAC_X86)) && !defined(DRFLAC_NO_SSE41)
-        #if defined(DRFLAC_X64)
-            return DRFLAC_TRUE;    /* 64-bit targets always support SSE4.1. */
-        #elif (defined(_M_IX86_FP) && _M_IX86_FP == 2) || defined(__SSE4_1__)
+        #if defined(__SSE4_1__) || defined(__AVX__)
             return DRFLAC_TRUE;    /* If the compiler is allowed to freely generate SSE41 code we can assume support. */
         #else
             #if defined(DRFLAC_NO_CPUID)
@@ -1582,18 +1505,21 @@ static DRFLAC_INLINE drflac_bool32 drflac_has_sse41(void)
     extern __inline drflac_uint64 _watcom_bswap64(drflac_uint64);
 #pragma aux _watcom_bswap16 = \
     "xchg al, ah" \
-    parm   [ax]   \
-    modify [ax];
+    parm  [ax]    \
+    value [ax]    \
+    modify nomemory;
 #pragma aux _watcom_bswap32 = \
-    "bswap eax"  \
-    parm   [eax] \
-    modify [eax];
+    "bswap eax" \
+    parm  [eax] \
+    value [eax] \
+    modify nomemory;
 #pragma aux _watcom_bswap64 = \
     "bswap eax"     \
     "bswap edx"     \
     "xchg eax,edx"  \
     parm [eax edx]  \
-    modify [eax edx];
+    value [eax edx] \
+    modify nomemory;
 #endif
 
 
@@ -1621,8 +1547,11 @@ static DRFLAC_INLINE drflac_bool32 drflac_has_sse41(void)
 #define DRFLAC_ZERO_OBJECT(p)               DRFLAC_ZERO_MEMORY((p), sizeof(*(p)))
 #endif
 
+#define DRFLAC_MIN(a, b)                    (((a) < (b)) ? (a) : (b))
+
 #define DRFLAC_MAX_SIMD_VECTOR_SIZE                     64  /* 64 for AVX-512 in the future. */
 
+/* Result Codes */
 typedef drflac_int32 drflac_result;
 #define DRFLAC_SUCCESS                                   0
 #define DRFLAC_ERROR                                    -1   /* A generic error. */
@@ -1678,7 +1607,10 @@ typedef drflac_int32 drflac_result;
 #define DRFLAC_CANCELLED                                -51
 #define DRFLAC_MEMORY_ALREADY_MAPPED                    -52
 #define DRFLAC_AT_END                                   -53
-#define DRFLAC_CRC_MISMATCH                             -128
+
+#define DRFLAC_CRC_MISMATCH                             -100
+/* End Result Codes */
+
 
 #define DRFLAC_SUBFRAME_CONSTANT                        0
 #define DRFLAC_SUBFRAME_VERBATIM                        1
@@ -1693,6 +1625,10 @@ typedef drflac_int32 drflac_result;
 #define DRFLAC_CHANNEL_ASSIGNMENT_LEFT_SIDE             8
 #define DRFLAC_CHANNEL_ASSIGNMENT_RIGHT_SIDE            9
 #define DRFLAC_CHANNEL_ASSIGNMENT_MID_SIDE              10
+
+#define DRFLAC_SEEKPOINT_SIZE_IN_BYTES                  18
+#define DRFLAC_CUESHEET_TRACK_SIZE_IN_BYTES             36
+#define DRFLAC_CUESHEET_TRACK_INDEX_SIZE_IN_BYTES       12
 
 #define drflac_align(x, a)                              ((((x) + (a) - 1) / (a)) * (a))
 
@@ -1834,7 +1770,7 @@ static DRFLAC_INLINE drflac_uint32 drflac__swap_endian_uint32(drflac_uint32 n)
     #if defined(_MSC_VER) && !defined(__clang__)
         return _byteswap_ulong(n);
     #elif defined(__GNUC__) || defined(__clang__)
-        #if defined(DRFLAC_ARM) && (defined(__ARM_ARCH) && __ARM_ARCH >= 6) && !defined(DRFLAC_64BIT)   /* <-- 64-bit inline assembly has not been tested, so disabling for now. */
+        #if defined(DRFLAC_ARM) && (defined(__ARM_ARCH) && __ARM_ARCH >= 6) && !defined(__ARM_ARCH_6M__) && !defined(DRFLAC_64BIT)   /* <-- 64-bit inline assembly has not been tested, so disabling for now. */
             /* Inline assembly optimized implementation for ARM. In my testing, GCC does not generate optimized code with __builtin_bswap32(). */
             drflac_uint32 r;
             __asm__ __volatile__ (
@@ -2696,6 +2632,10 @@ static drflac_bool32 drflac__find_and_seek_to_next_sync_code(drflac_bs* bs)
 #if  defined(__WATCOMC__) && defined(__386__)
 #define DRFLAC_IMPLEMENT_CLZ_WATCOM
 #endif
+#ifdef __MRC__
+#include <intrinsics.h>
+#define DRFLAC_IMPLEMENT_CLZ_MRC
+#endif
 
 static DRFLAC_INLINE drflac_uint32 drflac__clz_software(drflac_cache_t x)
 {
@@ -2735,6 +2675,8 @@ static DRFLAC_INLINE drflac_bool32 drflac__is_lzcnt_supported(void)
 {
     /* Fast compile time check for ARM. */
 #if defined(DRFLAC_HAS_LZCNT_INTRINSIC) && defined(DRFLAC_ARM) && (defined(__ARM_ARCH) && __ARM_ARCH >= 5)
+    return DRFLAC_TRUE;
+#elif defined(__MRC__)
     return DRFLAC_TRUE;
 #else
     /* If the compiler itself does not support the intrinsic then we'll need to return false. */
@@ -2776,9 +2718,17 @@ static DRFLAC_INLINE drflac_uint32 drflac__clz_lzcnt(drflac_cache_t x)
     #if defined(__GNUC__) || defined(__clang__)
         #if defined(DRFLAC_X64)
             {
+                /*
+                A note on lzcnt.
+
+                We check for the presence of the lzcnt instruction at runtime before calling this function, but we still generate this code. I have had
+                a report where the assembler does not recognize the lzcnt instruction. To work around this we are going to use `rep; bsr` instead which
+                has an identical byte encoding as lzcnt, and should hopefully improve compatibility with older assemblers.
+                */
                 drflac_uint64 r;
                 __asm__ __volatile__ (
-                    "lzcnt{ %1, %0| %0, %1}" : "=r"(r) : "r"(x) : "cc"
+                    "rep; bsr{q %1, %0| %0, %1}" : "=r"(r) : "r"(x) : "cc"
+                    /*"lzcnt{ %1, %0| %0, %1}" : "=r"(r) : "r"(x) : "cc"*/
                 );
 
                 return (drflac_uint32)r;
@@ -2787,12 +2737,13 @@ static DRFLAC_INLINE drflac_uint32 drflac__clz_lzcnt(drflac_cache_t x)
             {
                 drflac_uint32 r;
                 __asm__ __volatile__ (
-                    "lzcnt{l %1, %0| %0, %1}" : "=r"(r) : "r"(x) : "cc"
+                    "rep; bsr{l %1, %0| %0, %1}" : "=r"(r) : "r"(x) : "cc"
+                    /*"lzcnt{l %1, %0| %0, %1}" : "=r"(r) : "r"(x) : "cc"*/
                 );
 
                 return r;
             }
-        #elif defined(DRFLAC_ARM) && (defined(__ARM_ARCH) && __ARM_ARCH >= 5) && !defined(DRFLAC_64BIT)   /* <-- I haven't tested 64-bit inline assembly, so only enabling this for the 32-bit build for now. */
+        #elif defined(DRFLAC_ARM) && (defined(__ARM_ARCH) && __ARM_ARCH >= 5) && !defined(__ARM_ARCH_6M__) && !(defined(__thumb__) && !defined(__thumb2__)) && !defined(DRFLAC_64BIT)   /* <-- I haven't tested 64-bit inline assembly, so only enabling this for the 32-bit build for now. */
             {
                 unsigned int r;
                 __asm__ __volatile__ (
@@ -2845,12 +2796,22 @@ static DRFLAC_INLINE drflac_uint32 drflac__clz_msvc(drflac_cache_t x)
 
 #ifdef DRFLAC_IMPLEMENT_CLZ_WATCOM
 static __inline drflac_uint32 drflac__clz_watcom (drflac_uint32);
+#ifdef DRFLAC_IMPLEMENT_CLZ_WATCOM_LZCNT
+/* Use the LZCNT instruction (only available on some processors since the 2010s). */
+#pragma aux drflac__clz_watcom_lzcnt = \
+    "db 0F3h, 0Fh, 0BDh, 0C0h" /* lzcnt eax, eax */ \
+    parm [eax] \
+    value [eax] \
+    modify nomemory;
+#else
+/* Use the 386+-compatible implementation. */
 #pragma aux drflac__clz_watcom = \
     "bsr eax, eax" \
     "xor eax, 31" \
     parm [eax] nomemory \
     value [eax] \
     modify exact [eax] nomemory;
+#endif
 #endif
 
 static DRFLAC_INLINE drflac_uint32 drflac__clz(drflac_cache_t x)
@@ -2863,8 +2824,12 @@ static DRFLAC_INLINE drflac_uint32 drflac__clz(drflac_cache_t x)
     {
 #ifdef DRFLAC_IMPLEMENT_CLZ_MSVC
         return drflac__clz_msvc(x);
+#elif defined(DRFLAC_IMPLEMENT_CLZ_WATCOM_LZCNT)
+        return drflac__clz_watcom_lzcnt(x);
 #elif defined(DRFLAC_IMPLEMENT_CLZ_WATCOM)
         return (x == 0) ? sizeof(x)*8 : drflac__clz_watcom(x);
+#elif defined(__MRC__)
+        return __cntlzw(x);
 #else
         return drflac__clz_software(x);
 #endif
@@ -2923,25 +2888,25 @@ static drflac_bool32 drflac__seek_to_byte(drflac_bs* bs, drflac_uint64 offsetFro
     */
     if (offsetFromStart > 0x7FFFFFFF) {
         drflac_uint64 bytesRemaining = offsetFromStart;
-        if (!bs->onSeek(bs->pUserData, 0x7FFFFFFF, drflac_seek_origin_start)) {
+        if (!bs->onSeek(bs->pUserData, 0x7FFFFFFF, DRFLAC_SEEK_SET)) {
             return DRFLAC_FALSE;
         }
         bytesRemaining -= 0x7FFFFFFF;
 
         while (bytesRemaining > 0x7FFFFFFF) {
-            if (!bs->onSeek(bs->pUserData, 0x7FFFFFFF, drflac_seek_origin_current)) {
+            if (!bs->onSeek(bs->pUserData, 0x7FFFFFFF, DRFLAC_SEEK_CUR)) {
                 return DRFLAC_FALSE;
             }
             bytesRemaining -= 0x7FFFFFFF;
         }
 
         if (bytesRemaining > 0) {
-            if (!bs->onSeek(bs->pUserData, (int)bytesRemaining, drflac_seek_origin_current)) {
+            if (!bs->onSeek(bs->pUserData, (int)bytesRemaining, DRFLAC_SEEK_CUR)) {
                 return DRFLAC_FALSE;
             }
         }
     } else {
-        if (!bs->onSeek(bs->pUserData, (int)offsetFromStart, drflac_seek_origin_start)) {
+        if (!bs->onSeek(bs->pUserData, (int)offsetFromStart, DRFLAC_SEEK_SET)) {
             return DRFLAC_FALSE;
         }
     }
@@ -4426,7 +4391,7 @@ static drflac_bool32 drflac__decode_samples_with_residual__rice__neon_32(drflac_
 
     const drflac_uint32 t[2] = {0x00000000, 0xFFFFFFFF};
 
-    riceParamMask    = ~((~0UL) << riceParam);
+    riceParamMask    = (drflac_uint32)~((~0UL) << riceParam);
     riceParamMask128 = vdupq_n_u32(riceParamMask);
 
     riceParam128 = vdupq_n_s32(riceParam);
@@ -4618,7 +4583,7 @@ static drflac_bool32 drflac__decode_samples_with_residual__rice__neon_64(drflac_
 
     const drflac_uint32 t[2] = {0x00000000, 0xFFFFFFFF};
 
-    riceParamMask    = ~((~0UL) << riceParam);
+    riceParamMask    = (drflac_uint32)~((~0UL) << riceParam);
     riceParamMask128 = vdupq_n_u32(riceParamMask);
 
     riceParam128 = vdupq_n_s32(riceParam);
@@ -5356,6 +5321,12 @@ static drflac_bool32 drflac__read_subframe_header(drflac_bs* bs, drflac_subframe
         return DRFLAC_FALSE;
     }
 
+    /*
+    Default to 0 for the LPC order. It's important that we always set this to 0 for non LPC
+    and FIXED subframes because we'll be using it in a generic validation check later.
+    */
+    pSubframe->lpcOrder = 0;
+
     type = (header & 0x7E) >> 1;
     if (type == 0) {
         pSubframe->subframeType = DRFLAC_SUBFRAME_CONSTANT;
@@ -5427,6 +5398,18 @@ static drflac_bool32 drflac__decode_subframe(drflac_bs* bs, drflac_frame* frame,
     subframeBitsPerSample -= pSubframe->wastedBitsPerSample;
 
     pSubframe->pSamplesS32 = pDecodedSamplesOut;
+
+    /*
+    pDecodedSamplesOut will be pointing to a buffer that was allocated with enough memory to store
+    maxBlockSizeInPCMFrames samples (as specified in the FLAC header). We need to guard against an
+    overflow here. At a higher level we are checking maxBlockSizeInPCMFrames from the header, but
+    here we need to do an additional check to ensure this frame's block size fully encompasses any
+    warmup samples which is determined by the LPC order. For non LPC and FIXED subframes, the LPC
+    order will be have been set to 0 in drflac__read_subframe_header().
+    */
+    if (frame->header.blockSizeInPCMFrames < pSubframe->lpcOrder) {
+        return DRFLAC_FALSE;
+    }
 
     switch (pSubframe->subframeType)
     {
@@ -5999,8 +5982,6 @@ static drflac_bool32 drflac__seek_to_pcm_frame__binary_search_internal(drflac* p
                     break;  /* Failed to seek to FLAC frame. */
                 }
             } else {
-                const float approxCompressionRatio = (drflac_int64)(lastSuccessfulSeekOffset - pFlac->firstFLACFramePosInBytes) / ((drflac_int64)(pcmRangeLo * pFlac->channels * pFlac->bitsPerSample)/8.0f);
-
                 if (pcmRangeLo > pcmFrameIndex) {
                     /* We seeked too far forward. We need to move our target byte backward and try again. */
                     byteRangeHi = lastSuccessfulSeekOffset;
@@ -6023,12 +6004,14 @@ static drflac_bool32 drflac__seek_to_pcm_frame__binary_search_internal(drflac* p
                             break;  /* Failed to seek to FLAC frame. */
                         }
                     } else {
+                        const double approxCompressionRatio = (drflac_int64)(lastSuccessfulSeekOffset - pFlac->firstFLACFramePosInBytes) / ((drflac_int64)(pcmRangeLo * pFlac->channels * pFlac->bitsPerSample)/8.0);
+
                         byteRangeLo = lastSuccessfulSeekOffset;
                         if (byteRangeHi < byteRangeLo) {
                             byteRangeHi = byteRangeLo;
                         }
 
-                        targetByte = lastSuccessfulSeekOffset + (drflac_uint64)(((drflac_int64)((pcmFrameIndex-pcmRangeLo) * pFlac->channels * pFlac->bitsPerSample)/8.0f) * approxCompressionRatio);
+                        targetByte = lastSuccessfulSeekOffset + (drflac_uint64)(((drflac_int64)((pcmFrameIndex-pcmRangeLo) * pFlac->channels * pFlac->bitsPerSample)/8.0) * approxCompressionRatio);
                         if (targetByte > byteRangeHi) {
                             targetByte = byteRangeHi;
                         }
@@ -6275,6 +6258,7 @@ typedef struct
 {
     drflac_read_proc onRead;
     drflac_seek_proc onSeek;
+    drflac_tell_proc onTell;
     drflac_meta_proc onMeta;
     drflac_container container;
     void* pUserData;
@@ -6420,7 +6404,7 @@ static void* drflac__realloc_from_callbacks(void* p, size_t szNew, size_t szOld,
         }
 
         if (p != NULL) {
-            DRFLAC_COPY_MEMORY(p2, p, szOld);
+            DRFLAC_COPY_MEMORY(p2, p, DRFLAC_MIN(szNew, szOld));
             pAllocationCallbacks->onFree(p, pAllocationCallbacks->pUserData);
         }
 
@@ -6442,29 +6426,48 @@ static void drflac__free_from_callbacks(void* p, const drflac_allocation_callbac
 }
 
 
-static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_meta_proc onMeta, void* pUserData, void* pUserDataMD, drflac_uint64* pFirstFramePos, drflac_uint64* pSeektablePos, drflac_uint32* pSeektableSize, drflac_allocation_callbacks* pAllocationCallbacks)
+static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, drflac_meta_proc onMeta, void* pUserData, void* pUserDataMD, drflac_uint64* pFirstFramePos, drflac_uint64* pSeektablePos, drflac_uint32* pSeekpointCount, drflac_allocation_callbacks* pAllocationCallbacks)
 {
     /*
     We want to keep track of the byte position in the stream of the seektable. At the time of calling this function we know that
     we'll be sitting on byte 42.
     */
-    drflac_uint64 runningFilePos = 42;
-    drflac_uint64 seektablePos   = 0;
-    drflac_uint32 seektableSize  = 0;
+    drflac_uint64 runningFilePos   = 42;
+    drflac_uint64 seektablePos     = 0;
+    drflac_uint32 seektableSize    = 0;
+    drflac_int64  fileSize         = 0;
+    drflac_bool32 hasKnownFileSize = DRFLAC_FALSE;
+
+    /* We'll be doing some memory allocations here against untrusted data. We'll do a basic validation check that they don't exceed the size of the file. */
+    if (onTell != NULL && onSeek != NULL) {
+        if (onSeek(pUserData, 0, DRFLAC_SEEK_END)) {
+            if (onTell(pUserData, &fileSize)) {
+                hasKnownFileSize = DRFLAC_TRUE;
+            }
+
+            onSeek(pUserData, runningFilePos, DRFLAC_SEEK_SET);
+        }
+    }
 
     for (;;) {
         drflac_metadata metadata;
         drflac_uint8 isLastBlock = 0;
-        drflac_uint8 blockType;
+        drflac_uint8 blockType = 0;
         drflac_uint32 blockSize;
         if (drflac__read_and_decode_block_header(onRead, pUserData, &isLastBlock, &blockType, &blockSize) == DRFLAC_FALSE) {
             return DRFLAC_FALSE;
         }
+
+        if (hasKnownFileSize && (blockSize > ((drflac_uint64)fileSize - runningFilePos))) {
+            return DRFLAC_FALSE;    /* Block size exceeds the size of the file. */
+        }
+
         runningFilePos += 4;
 
         metadata.type = blockType;
-        metadata.pRawData = NULL;
         metadata.rawDataSize = 0;
+        metadata.rawDataOffset = runningFilePos;
+        metadata.pRawData = NULL;
 
         switch (blockType)
         {
@@ -6502,31 +6505,36 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                 seektableSize = blockSize;
 
                 if (onMeta) {
+                    drflac_uint32 seekpointCount;
                     drflac_uint32 iSeekpoint;
                     void* pRawData;
 
-                    pRawData = drflac__malloc_from_callbacks(blockSize, pAllocationCallbacks);
+                    seekpointCount = blockSize/DRFLAC_SEEKPOINT_SIZE_IN_BYTES;
+
+                    pRawData = drflac__malloc_from_callbacks(seekpointCount * sizeof(drflac_seekpoint), pAllocationCallbacks);
                     if (pRawData == NULL) {
                         return DRFLAC_FALSE;
                     }
 
-                    if (onRead(pUserData, pRawData, blockSize) != blockSize) {
-                        drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
-                        return DRFLAC_FALSE;
-                    }
-
-                    metadata.pRawData = pRawData;
-                    metadata.rawDataSize = blockSize;
-                    metadata.data.seektable.seekpointCount = blockSize/sizeof(drflac_seekpoint);
-                    metadata.data.seektable.pSeekpoints = (const drflac_seekpoint*)pRawData;
-
-                    /* Endian swap. */
-                    for (iSeekpoint = 0; iSeekpoint < metadata.data.seektable.seekpointCount; ++iSeekpoint) {
+                    /* We need to read seekpoint by seekpoint and do some processing. */
+                    for (iSeekpoint = 0; iSeekpoint < seekpointCount; ++iSeekpoint) {
                         drflac_seekpoint* pSeekpoint = (drflac_seekpoint*)pRawData + iSeekpoint;
+
+                        if (onRead(pUserData, pSeekpoint, DRFLAC_SEEKPOINT_SIZE_IN_BYTES) != DRFLAC_SEEKPOINT_SIZE_IN_BYTES) {
+                            drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
+                            return DRFLAC_FALSE;
+                        }
+
+                        /* Endian swap. */
                         pSeekpoint->firstPCMFrame   = drflac__be2host_64(pSeekpoint->firstPCMFrame);
                         pSeekpoint->flacFrameOffset = drflac__be2host_64(pSeekpoint->flacFrameOffset);
                         pSeekpoint->pcmFrameCount   = drflac__be2host_16(pSeekpoint->pcmFrameCount);
                     }
+
+                    metadata.pRawData = pRawData;
+                    metadata.rawDataSize = blockSize;
+                    metadata.data.seektable.seekpointCount = seekpointCount;
+                    metadata.data.seektable.pSeekpoints = (const drflac_seekpoint*)pRawData;
 
                     onMeta(pUserDataMD, &metadata);
 
@@ -6569,7 +6577,7 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                         drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
                         return DRFLAC_FALSE;
                     }
-                    metadata.data.vorbis_comment.vendor       = pRunningData;                                            pRunningData += metadata.data.vorbis_comment.vendorLength;
+                    metadata.data.vorbis_comment.vendor       = pRunningData;                                   pRunningData += metadata.data.vorbis_comment.vendorLength;
                     metadata.data.vorbis_comment.commentCount = drflac__le2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
 
                     /* Need space for 'commentCount' comments after the block, which at minimum is a drflac_uint32 per comment */
@@ -6612,9 +6620,15 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                     void* pRawData;
                     const char* pRunningData;
                     const char* pRunningDataEnd;
+                    size_t bufferSize;
                     drflac_uint8 iTrack;
                     drflac_uint8 iIndex;
+                    void* pTrackData;
 
+                    /*
+                    This needs to be loaded in two passes. The first pass is used to calculate the size of the memory allocation
+                    we need for storing the necessary data. The second pass will fill that buffer with usable data.
+                    */
                     pRawData = drflac__malloc_from_callbacks(blockSize, pAllocationCallbacks);
                     if (pRawData == NULL) {
                         return DRFLAC_FALSE;
@@ -6635,38 +6649,91 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                     metadata.data.cuesheet.leadInSampleCount = drflac__be2host_64(*(const drflac_uint64*)pRunningData); pRunningData += 8;
                     metadata.data.cuesheet.isCD              = (pRunningData[0] & 0x80) != 0;                           pRunningData += 259;
                     metadata.data.cuesheet.trackCount        = pRunningData[0];                                         pRunningData += 1;
-                    metadata.data.cuesheet.pTrackData        = pRunningData;
+                    metadata.data.cuesheet.pTrackData        = NULL;    /* Will be filled later. */
 
-                    /* Check that the cuesheet tracks are valid before passing it to the callback */
-                    for (iTrack = 0; iTrack < metadata.data.cuesheet.trackCount; ++iTrack) {
-                        drflac_uint8 indexCount;
-                        drflac_uint32 indexPointSize;
+                    /* Pass 1: Calculate the size of the buffer for the track data. */
+                    {
+                        const char* pRunningDataSaved = pRunningData;   /* Will be restored at the end in preparation for the second pass. */
 
-                        if (pRunningDataEnd - pRunningData < 36) {
-                            drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
-                            return DRFLAC_FALSE;
+                        bufferSize = metadata.data.cuesheet.trackCount * DRFLAC_CUESHEET_TRACK_SIZE_IN_BYTES;
+
+                        for (iTrack = 0; iTrack < metadata.data.cuesheet.trackCount; ++iTrack) {
+                            drflac_uint8 indexCount;
+                            drflac_uint32 indexPointSize;
+
+                            if (pRunningDataEnd - pRunningData < DRFLAC_CUESHEET_TRACK_SIZE_IN_BYTES) {
+                                drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
+                                return DRFLAC_FALSE;
+                            }
+
+                            /* Skip to the index point count */
+                            pRunningData += 35;
+
+                            indexCount = pRunningData[0];
+                            pRunningData += 1;
+
+                            bufferSize += indexCount * sizeof(drflac_cuesheet_track_index);
+
+                            /* Quick validation check. */
+                            indexPointSize = indexCount * DRFLAC_CUESHEET_TRACK_INDEX_SIZE_IN_BYTES;
+                            if (pRunningDataEnd - pRunningData < (drflac_int64)indexPointSize) {
+                                drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
+                                return DRFLAC_FALSE;
+                            }
+
+                            pRunningData += indexPointSize;
                         }
 
-                        /* Skip to the index point count */
-                        pRunningData += 35;
-                        indexCount = pRunningData[0]; pRunningData += 1;
-                        indexPointSize = indexCount * sizeof(drflac_cuesheet_track_index);
-                        if (pRunningDataEnd - pRunningData < (drflac_int64)indexPointSize) {
-                            drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
-                            return DRFLAC_FALSE;
-                        }
-
-                        /* Endian swap. */
-                        for (iIndex = 0; iIndex < indexCount; ++iIndex) {
-                            drflac_cuesheet_track_index* pTrack = (drflac_cuesheet_track_index*)pRunningData;
-                            pRunningData += sizeof(drflac_cuesheet_track_index);
-                            pTrack->offset = drflac__be2host_64(pTrack->offset);
-                        }
+                        pRunningData = pRunningDataSaved;
                     }
+
+                    /* Pass 2: Allocate a buffer and fill the data. Validation was done in the step above so can be skipped. */
+                    {
+                        char* pRunningTrackData;
+
+                        pTrackData = drflac__malloc_from_callbacks(bufferSize, pAllocationCallbacks);
+                        if (pTrackData == NULL) {
+                            drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
+                            return DRFLAC_FALSE;
+                        }
+
+                        pRunningTrackData = (char*)pTrackData;
+
+                        for (iTrack = 0; iTrack < metadata.data.cuesheet.trackCount; ++iTrack) {
+                            drflac_uint8 indexCount;
+
+                            DRFLAC_COPY_MEMORY(pRunningTrackData, pRunningData, DRFLAC_CUESHEET_TRACK_SIZE_IN_BYTES);
+                            pRunningData      += DRFLAC_CUESHEET_TRACK_SIZE_IN_BYTES-1; /* Skip forward, but not beyond the last byte in the CUESHEET_TRACK block which is the index count. */
+                            pRunningTrackData += DRFLAC_CUESHEET_TRACK_SIZE_IN_BYTES-1;
+
+                            /* Grab the index count for the next part. */
+                            indexCount = pRunningData[0];
+                            pRunningData      += 1;
+                            pRunningTrackData += 1;
+
+                            /* Extract each track index. */
+                            for (iIndex = 0; iIndex < indexCount; ++iIndex) {
+                                drflac_cuesheet_track_index* pTrackIndex = (drflac_cuesheet_track_index*)pRunningTrackData;
+
+                                DRFLAC_COPY_MEMORY(pRunningTrackData, pRunningData, DRFLAC_CUESHEET_TRACK_INDEX_SIZE_IN_BYTES);
+                                pRunningData      += DRFLAC_CUESHEET_TRACK_INDEX_SIZE_IN_BYTES;
+                                pRunningTrackData += sizeof(drflac_cuesheet_track_index);
+
+                                pTrackIndex->offset = drflac__be2host_64(pTrackIndex->offset);
+                            }
+                        }
+
+                        metadata.data.cuesheet.pTrackData = pTrackData;
+                    }
+
+                    /* The original data is no longer needed. */
+                    drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
+                    pRawData = NULL;
 
                     onMeta(pUserDataMD, &metadata);
 
-                    drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
+                    drflac__free_from_callbacks(pTrackData, pAllocationCallbacks);
+                    pTrackData = NULL;
                 }
             } break;
 
@@ -6677,59 +6744,161 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                 }
 
                 if (onMeta) {
-                    void* pRawData;
-                    const char* pRunningData;
-                    const char* pRunningDataEnd;
+                    drflac_bool32 result = DRFLAC_TRUE;
+                    drflac_uint32 blockSizeRemaining = blockSize;
+                    char* pMime = NULL;
+                    char* pDescription = NULL;
+                    void* pPictureData = NULL;
 
-                    pRawData = drflac__malloc_from_callbacks(blockSize, pAllocationCallbacks);
-                    if (pRawData == NULL) {
-                        return DRFLAC_FALSE;
+                    if (blockSizeRemaining < 4 || onRead(pUserData, &metadata.data.picture.type, 4) != 4) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
+                    }
+                    blockSizeRemaining -= 4;
+                    metadata.data.picture.type = drflac__be2host_32(metadata.data.picture.type);
+
+
+                    if (blockSizeRemaining < 4 || onRead(pUserData, &metadata.data.picture.mimeLength, 4) != 4) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
+                    }
+                    blockSizeRemaining -= 4;
+                    metadata.data.picture.mimeLength = drflac__be2host_32(metadata.data.picture.mimeLength);
+
+                    if (blockSizeRemaining < metadata.data.picture.mimeLength) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
                     }
 
-                    if (onRead(pUserData, pRawData, blockSize) != blockSize) {
-                        drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
-                        return DRFLAC_FALSE;
+                    pMime = (char*)drflac__malloc_from_callbacks(metadata.data.picture.mimeLength + 1, pAllocationCallbacks); /* +1 for null terminator. */
+                    if (pMime == NULL) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
                     }
 
-                    metadata.pRawData = pRawData;
-                    metadata.rawDataSize = blockSize;
-
-                    pRunningData    = (const char*)pRawData;
-                    pRunningDataEnd = (const char*)pRawData + blockSize;
-
-                    metadata.data.picture.type       = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
-                    metadata.data.picture.mimeLength = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
-
-                    /* Need space for the rest of the block */
-                    if ((pRunningDataEnd - pRunningData) - 24 < (drflac_int64)metadata.data.picture.mimeLength) { /* <-- Note the order of operations to avoid overflow to a valid value */
-                        drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
-                        return DRFLAC_FALSE;
+                    if (onRead(pUserData, pMime, metadata.data.picture.mimeLength) != metadata.data.picture.mimeLength) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
                     }
-                    metadata.data.picture.mime              = pRunningData;                                            pRunningData += metadata.data.picture.mimeLength;
-                    metadata.data.picture.descriptionLength = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
+                    blockSizeRemaining -= metadata.data.picture.mimeLength;
+                    pMime[metadata.data.picture.mimeLength] = '\0';  /* Null terminate for safety. */
+                    metadata.data.picture.mime = (const char*)pMime;
 
-                    /* Need space for the rest of the block */
-                    if ((pRunningDataEnd - pRunningData) - 20 < (drflac_int64)metadata.data.picture.descriptionLength) { /* <-- Note the order of operations to avoid overflow to a valid value */
-                        drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
-                        return DRFLAC_FALSE;
+
+                    if (blockSizeRemaining < 4 || onRead(pUserData, &metadata.data.picture.descriptionLength, 4) != 4) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
                     }
-                    metadata.data.picture.description     = pRunningData;                                            pRunningData += metadata.data.picture.descriptionLength;
-                    metadata.data.picture.width           = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
-                    metadata.data.picture.height          = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
-                    metadata.data.picture.colorDepth      = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
-                    metadata.data.picture.indexColorCount = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
-                    metadata.data.picture.pictureDataSize = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
-                    metadata.data.picture.pPictureData    = (const drflac_uint8*)pRunningData;
+                    blockSizeRemaining -= 4;
+                    metadata.data.picture.descriptionLength = drflac__be2host_32(metadata.data.picture.descriptionLength);
 
-                    /* Need space for the picture after the block */
-                    if (pRunningDataEnd - pRunningData < (drflac_int64)metadata.data.picture.pictureDataSize) { /* <-- Note the order of operations to avoid overflow to a valid value */
-                        drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
-                        return DRFLAC_FALSE;
+                    if (blockSizeRemaining < metadata.data.picture.descriptionLength) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
                     }
 
-                    onMeta(pUserDataMD, &metadata);
+                    pDescription = (char*)drflac__malloc_from_callbacks(metadata.data.picture.descriptionLength + 1, pAllocationCallbacks); /* +1 for null terminator. */
+                    if (pDescription == NULL) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
+                    }
 
-                    drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
+                    if (onRead(pUserData, pDescription, metadata.data.picture.descriptionLength) != metadata.data.picture.descriptionLength) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
+                    }
+                    blockSizeRemaining -= metadata.data.picture.descriptionLength;
+                    pDescription[metadata.data.picture.descriptionLength] = '\0';  /* Null terminate for safety. */
+                    metadata.data.picture.description = (const char*)pDescription;
+
+
+                    if (blockSizeRemaining < 4 || onRead(pUserData, &metadata.data.picture.width, 4) != 4) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
+                    }
+                    blockSizeRemaining -= 4;
+                    metadata.data.picture.width = drflac__be2host_32(metadata.data.picture.width);
+
+                    if (blockSizeRemaining < 4 || onRead(pUserData, &metadata.data.picture.height, 4) != 4) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
+                    }
+                    blockSizeRemaining -= 4;
+                    metadata.data.picture.height = drflac__be2host_32(metadata.data.picture.height);
+
+                    if (blockSizeRemaining < 4 || onRead(pUserData, &metadata.data.picture.colorDepth, 4) != 4) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
+                    }
+                    blockSizeRemaining -= 4;
+                    metadata.data.picture.colorDepth = drflac__be2host_32(metadata.data.picture.colorDepth);
+
+                    if (blockSizeRemaining < 4 || onRead(pUserData, &metadata.data.picture.indexColorCount, 4) != 4) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
+                    }
+                    blockSizeRemaining -= 4;
+                    metadata.data.picture.indexColorCount = drflac__be2host_32(metadata.data.picture.indexColorCount);
+
+
+                    /* Picture data. */
+                    if (blockSizeRemaining < 4 || onRead(pUserData, &metadata.data.picture.pictureDataSize, 4) != 4) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
+                    }
+                    blockSizeRemaining -= 4;
+                    metadata.data.picture.pictureDataSize = drflac__be2host_32(metadata.data.picture.pictureDataSize);
+
+                    if (blockSizeRemaining < metadata.data.picture.pictureDataSize) {
+                        result = DRFLAC_FALSE;
+                        goto done_flac;
+                    }
+
+                    /* For the actual image data we want to store the offset to the start of the stream. */
+                    metadata.data.picture.pictureDataOffset = runningFilePos + (blockSize - blockSizeRemaining);
+
+                    /*
+                    For the allocation of image data, we can allow memory allocation to fail, in which case we just leave
+                    the pointer as null. If it fails, we need to fall back to seeking past the image data.
+                    */
+                #ifndef DR_FLAC_NO_PICTURE_METADATA_MALLOC
+                    pPictureData = drflac__malloc_from_callbacks(metadata.data.picture.pictureDataSize, pAllocationCallbacks);
+                    if (pPictureData != NULL) {
+                        if (onRead(pUserData, pPictureData, metadata.data.picture.pictureDataSize) != metadata.data.picture.pictureDataSize) {
+                            result = DRFLAC_FALSE;
+                            goto done_flac;
+                        }
+                    } else
+                #endif
+                    {
+                        /* Allocation failed. We need to seek past the picture data. */
+                        if (!onSeek(pUserData, metadata.data.picture.pictureDataSize, DRFLAC_SEEK_CUR)) {
+                            result = DRFLAC_FALSE;
+                            goto done_flac;
+                        }
+                    }
+
+                    blockSizeRemaining -= metadata.data.picture.pictureDataSize;
+                    (void)blockSizeRemaining;
+
+                    metadata.data.picture.pPictureData = (const drflac_uint8*)pPictureData;
+                    
+
+                    /* Only fire the callback if we actually have a way to read the image data. We must have either a valid offset, or a valid data pointer. */
+                    if (metadata.data.picture.pictureDataOffset != 0 || metadata.data.picture.pPictureData != NULL) {
+                        onMeta(pUserDataMD, &metadata);
+                    } else {
+                        /* Don't have a valid offset or data pointer, so just pretend we don't have a picture metadata. */
+                    }
+
+                done_flac:
+                    drflac__free_from_callbacks(pMime,        pAllocationCallbacks);
+                    drflac__free_from_callbacks(pDescription, pAllocationCallbacks);
+                    drflac__free_from_callbacks(pPictureData, pAllocationCallbacks);
+
+                    if (result != DRFLAC_TRUE) {
+                        return DRFLAC_FALSE;
+                    }
                 }
             } break;
 
@@ -6739,7 +6908,7 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                     metadata.data.padding.unused = 0;
 
                     /* Padding doesn't have anything meaningful in it, so just skip over it, but make sure the caller is aware of it by firing the callback. */
-                    if (!onSeek(pUserData, blockSize, drflac_seek_origin_current)) {
+                    if (!onSeek(pUserData, blockSize, DRFLAC_SEEK_CUR)) {
                         isLastBlock = DRFLAC_TRUE;  /* An error occurred while seeking. Attempt to recover by treating this as the last block which will in turn terminate the loop. */
                     } else {
                         onMeta(pUserDataMD, &metadata);
@@ -6751,7 +6920,7 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
             {
                 /* Invalid chunk. Just skip over this one. */
                 if (onMeta) {
-                    if (!onSeek(pUserData, blockSize, drflac_seek_origin_current)) {
+                    if (!onSeek(pUserData, blockSize, DRFLAC_SEEK_CUR)) {
                         isLastBlock = DRFLAC_TRUE;  /* An error occurred while seeking. Attempt to recover by treating this as the last block which will in turn terminate the loop. */
                     }
                 }
@@ -6765,13 +6934,16 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                 */
                 if (onMeta) {
                     void* pRawData = drflac__malloc_from_callbacks(blockSize, pAllocationCallbacks);
-                    if (pRawData == NULL) {
-                        return DRFLAC_FALSE;
-                    }
-
-                    if (onRead(pUserData, pRawData, blockSize) != blockSize) {
-                        drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
-                        return DRFLAC_FALSE;
+                    if (pRawData != NULL) {
+                        if (onRead(pUserData, pRawData, blockSize) != blockSize) {
+                            drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
+                            return DRFLAC_FALSE;
+                        }
+                    } else {
+                        /* Allocation failed. We need to seek past the block. */
+                        if (!onSeek(pUserData, blockSize, DRFLAC_SEEK_CUR)) {
+                            return DRFLAC_FALSE;
+                        }
                     }
 
                     metadata.pRawData = pRawData;
@@ -6785,7 +6957,7 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
 
         /* If we're not handling metadata, just skip over the block. If we are, it will have been handled earlier in the switch statement above. */
         if (onMeta == NULL && blockSize > 0) {
-            if (!onSeek(pUserData, blockSize, drflac_seek_origin_current)) {
+            if (!onSeek(pUserData, blockSize, DRFLAC_SEEK_CUR)) {
                 isLastBlock = DRFLAC_TRUE;
             }
         }
@@ -6796,9 +6968,9 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
         }
     }
 
-    *pSeektablePos = seektablePos;
-    *pSeektableSize = seektableSize;
-    *pFirstFramePos = runningFilePos;
+    *pSeektablePos   = seektablePos;
+    *pSeekpointCount = seektableSize / DRFLAC_SEEKPOINT_SIZE_IN_BYTES;
+    *pFirstFramePos  = runningFilePos;
 
     return DRFLAC_TRUE;
 }
@@ -7119,6 +7291,7 @@ typedef struct
 {
     drflac_read_proc onRead;                /* The original onRead callback from drflac_open() and family. */
     drflac_seek_proc onSeek;                /* The original onSeek callback from drflac_open() and family. */
+    drflac_tell_proc onTell;                /* The original onTell callback from drflac_open() and family. */
     void* pUserData;                        /* The user data passed on onRead and onSeek. This is the user data that was passed on drflac_open() and family. */
     drflac_uint64 currentBytePos;           /* The position of the byte we are sitting on in the physical byte stream. Used for efficient seeking. */
     drflac_uint64 firstBytePos;             /* The position of the first byte in the physical bitstream. Points to the start of the "OggS" identifier of the FLAC bos page. */
@@ -7140,32 +7313,32 @@ static size_t drflac_oggbs__read_physical(drflac_oggbs* oggbs, void* bufferOut, 
 
 static drflac_bool32 drflac_oggbs__seek_physical(drflac_oggbs* oggbs, drflac_uint64 offset, drflac_seek_origin origin)
 {
-    if (origin == drflac_seek_origin_start) {
+    if (origin == DRFLAC_SEEK_SET) {
         if (offset <= 0x7FFFFFFF) {
-            if (!oggbs->onSeek(oggbs->pUserData, (int)offset, drflac_seek_origin_start)) {
+            if (!oggbs->onSeek(oggbs->pUserData, (int)offset, DRFLAC_SEEK_SET)) {
                 return DRFLAC_FALSE;
             }
             oggbs->currentBytePos = offset;
 
             return DRFLAC_TRUE;
         } else {
-            if (!oggbs->onSeek(oggbs->pUserData, 0x7FFFFFFF, drflac_seek_origin_start)) {
+            if (!oggbs->onSeek(oggbs->pUserData, 0x7FFFFFFF, DRFLAC_SEEK_SET)) {
                 return DRFLAC_FALSE;
             }
             oggbs->currentBytePos = offset;
 
-            return drflac_oggbs__seek_physical(oggbs, offset - 0x7FFFFFFF, drflac_seek_origin_current);
+            return drflac_oggbs__seek_physical(oggbs, offset - 0x7FFFFFFF, DRFLAC_SEEK_CUR);
         }
     } else {
         while (offset > 0x7FFFFFFF) {
-            if (!oggbs->onSeek(oggbs->pUserData, 0x7FFFFFFF, drflac_seek_origin_current)) {
+            if (!oggbs->onSeek(oggbs->pUserData, 0x7FFFFFFF, DRFLAC_SEEK_CUR)) {
                 return DRFLAC_FALSE;
             }
             oggbs->currentBytePos += 0x7FFFFFFF;
             offset -= 0x7FFFFFFF;
         }
 
-        if (!oggbs->onSeek(oggbs->pUserData, (int)offset, drflac_seek_origin_current)) {    /* <-- Safe cast thanks to the loop above. */
+        if (!oggbs->onSeek(oggbs->pUserData, (int)offset, DRFLAC_SEEK_CUR)) {    /* <-- Safe cast thanks to the loop above. */
             return DRFLAC_FALSE;
         }
         oggbs->currentBytePos += offset;
@@ -7197,7 +7370,7 @@ static drflac_bool32 drflac_oggbs__goto_next_page(drflac_oggbs* oggbs, drflac_og
 
         if (header.serialNumber != oggbs->serialNumber) {
             /* It's not a FLAC page. Skip it. */
-            if (pageBodySize > 0 && !drflac_oggbs__seek_physical(oggbs, pageBodySize, drflac_seek_origin_current)) {
+            if (pageBodySize > 0 && !drflac_oggbs__seek_physical(oggbs, pageBodySize, DRFLAC_SEEK_CUR)) {
                 return DRFLAC_FALSE;
             }
             continue;
@@ -7283,7 +7456,7 @@ static drflac_bool32 drflac_oggbs__seek_to_next_packet(drflac_oggbs* oggbs)
         At this point we will have found either the packet or the end of the page. If were at the end of the page we'll
         want to load the next page and keep searching for the end of the packet.
         */
-        drflac_oggbs__seek_physical(oggbs, bytesToEndOfPacketOrPage, drflac_seek_origin_current);
+        drflac_oggbs__seek_physical(oggbs, bytesToEndOfPacketOrPage, DRFLAC_SEEK_CUR);
         oggbs->bytesRemainingInPage -= bytesToEndOfPacketOrPage;
 
         if (atEndOfPage) {
@@ -7361,8 +7534,8 @@ static drflac_bool32 drflac__on_seek_ogg(void* pUserData, int offset, drflac_see
     DRFLAC_ASSERT(offset >= 0);  /* <-- Never seek backwards. */
 
     /* Seeking is always forward which makes things a lot simpler. */
-    if (origin == drflac_seek_origin_start) {
-        if (!drflac_oggbs__seek_physical(oggbs, (int)oggbs->firstBytePos, drflac_seek_origin_start)) {
+    if (origin == DRFLAC_SEEK_SET) {
+        if (!drflac_oggbs__seek_physical(oggbs, (int)oggbs->firstBytePos, DRFLAC_SEEK_SET)) {
             return DRFLAC_FALSE;
         }
 
@@ -7370,36 +7543,48 @@ static drflac_bool32 drflac__on_seek_ogg(void* pUserData, int offset, drflac_see
             return DRFLAC_FALSE;
         }
 
-        return drflac__on_seek_ogg(pUserData, offset, drflac_seek_origin_current);
-    }
+        return drflac__on_seek_ogg(pUserData, offset, DRFLAC_SEEK_CUR);
+    } else if (origin == DRFLAC_SEEK_CUR) {
+        while (bytesSeeked < offset) {
+            int bytesRemainingToSeek = offset - bytesSeeked;
+            DRFLAC_ASSERT(bytesRemainingToSeek >= 0);
 
-    DRFLAC_ASSERT(origin == drflac_seek_origin_current);
+            if (oggbs->bytesRemainingInPage >= (size_t)bytesRemainingToSeek) {
+                bytesSeeked += bytesRemainingToSeek;
+                (void)bytesSeeked;  /* <-- Silence a dead store warning emitted by Clang Static Analyzer. */
+                oggbs->bytesRemainingInPage -= bytesRemainingToSeek;
+                break;
+            }
 
-    while (bytesSeeked < offset) {
-        int bytesRemainingToSeek = offset - bytesSeeked;
-        DRFLAC_ASSERT(bytesRemainingToSeek >= 0);
+            /* If we get here it means some of the requested data is contained in the next pages. */
+            if (oggbs->bytesRemainingInPage > 0) {
+                bytesSeeked += (int)oggbs->bytesRemainingInPage;
+                oggbs->bytesRemainingInPage = 0;
+            }
 
-        if (oggbs->bytesRemainingInPage >= (size_t)bytesRemainingToSeek) {
-            bytesSeeked += bytesRemainingToSeek;
-            (void)bytesSeeked;  /* <-- Silence a dead store warning emitted by Clang Static Analyzer. */
-            oggbs->bytesRemainingInPage -= bytesRemainingToSeek;
-            break;
+            DRFLAC_ASSERT(bytesRemainingToSeek > 0);
+            if (!drflac_oggbs__goto_next_page(oggbs, drflac_ogg_fail_on_crc_mismatch)) {
+                /* Failed to go to the next page. We either hit the end of the stream or had a CRC mismatch. */
+                return DRFLAC_FALSE;
+            }
         }
-
-        /* If we get here it means some of the requested data is contained in the next pages. */
-        if (oggbs->bytesRemainingInPage > 0) {
-            bytesSeeked += (int)oggbs->bytesRemainingInPage;
-            oggbs->bytesRemainingInPage = 0;
-        }
-
-        DRFLAC_ASSERT(bytesRemainingToSeek > 0);
-        if (!drflac_oggbs__goto_next_page(oggbs, drflac_ogg_fail_on_crc_mismatch)) {
-            /* Failed to go to the next page. We either hit the end of the stream or had a CRC mismatch. */
-            return DRFLAC_FALSE;
-        }
+    } else if (origin == DRFLAC_SEEK_END) {
+        /* Seeking to the end is not supported. */
+        return DRFLAC_FALSE;
     }
 
     return DRFLAC_TRUE;
+}
+
+static drflac_bool32 drflac__on_tell_ogg(void* pUserData, drflac_int64* pCursor)
+{
+    /*
+    Not implemented for Ogg containers because we don't currently track the byte position of the logical bitstream. To support this, we'll need
+    to track the position in drflac__on_read_ogg and drflac__on_seek_ogg.
+    */
+    (void)pUserData;
+    (void)pCursor;
+    return DRFLAC_FALSE;
 }
 
 
@@ -7424,7 +7609,7 @@ static drflac_bool32 drflac_ogg__seek_to_pcm_frame(drflac* pFlac, drflac_uint64 
     runningGranulePosition = 0;
     for (;;) {
         if (!drflac_oggbs__goto_next_page(oggbs, drflac_ogg_recover_on_crc_mismatch)) {
-            drflac_oggbs__seek_physical(oggbs, originalBytePos, drflac_seek_origin_start);
+            drflac_oggbs__seek_physical(oggbs, originalBytePos, DRFLAC_SEEK_SET);
             return DRFLAC_FALSE;   /* Never did find that sample... */
         }
 
@@ -7458,7 +7643,7 @@ static drflac_bool32 drflac_ogg__seek_to_pcm_frame(drflac* pFlac, drflac_uint64 
     a new frame. This property means that after we've seeked to the page we can immediately start looping over frames until
     we find the one containing the target sample.
     */
-    if (!drflac_oggbs__seek_physical(oggbs, runningFrameBytePos, drflac_seek_origin_start)) {
+    if (!drflac_oggbs__seek_physical(oggbs, runningFrameBytePos, DRFLAC_SEEK_SET)) {
         return DRFLAC_FALSE;
     }
     if (!drflac_oggbs__goto_next_page(oggbs, drflac_ogg_recover_on_crc_mismatch)) {
@@ -7625,7 +7810,7 @@ static drflac_bool32 drflac__init_private__ogg(drflac_init_info* pInit, drflac_r
                     The next 2 bytes are the non-audio packets, not including this one. We don't care about this because we're going to
                     be handling it in a generic way based on the serial number and packet types.
                     */
-                    if (!onSeek(pUserData, 2, drflac_seek_origin_current)) {
+                    if (!onSeek(pUserData, 2, DRFLAC_SEEK_CUR)) {
                         return DRFLAC_FALSE;
                     }
 
@@ -7682,18 +7867,18 @@ static drflac_bool32 drflac__init_private__ogg(drflac_init_info* pInit, drflac_r
                     }
                 } else {
                     /* Not a FLAC header. Skip it. */
-                    if (!onSeek(pUserData, bytesRemainingInPage, drflac_seek_origin_current)) {
+                    if (!onSeek(pUserData, bytesRemainingInPage, DRFLAC_SEEK_CUR)) {
                         return DRFLAC_FALSE;
                     }
                 }
             } else {
                 /* Not a FLAC header. Seek past the entire page and move on to the next. */
-                if (!onSeek(pUserData, bytesRemainingInPage, drflac_seek_origin_current)) {
+                if (!onSeek(pUserData, bytesRemainingInPage, DRFLAC_SEEK_CUR)) {
                     return DRFLAC_FALSE;
                 }
             }
         } else {
-            if (!onSeek(pUserData, pageBodySize, drflac_seek_origin_current)) {
+            if (!onSeek(pUserData, pageBodySize, DRFLAC_SEEK_CUR)) {
                 return DRFLAC_FALSE;
             }
         }
@@ -7718,18 +7903,19 @@ static drflac_bool32 drflac__init_private__ogg(drflac_init_info* pInit, drflac_r
 }
 #endif
 
-static drflac_bool32 drflac__init_private(drflac_init_info* pInit, drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_meta_proc onMeta, drflac_container container, void* pUserData, void* pUserDataMD)
+static drflac_bool32 drflac__init_private(drflac_init_info* pInit, drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, drflac_meta_proc onMeta, drflac_container container, void* pUserData, void* pUserDataMD)
 {
     drflac_bool32 relaxed;
     drflac_uint8 id[4];
 
-    if (pInit == NULL || onRead == NULL || onSeek == NULL) {
+    if (pInit == NULL || onRead == NULL || onSeek == NULL) {    /* <-- onTell is optional. */
         return DRFLAC_FALSE;
     }
 
     DRFLAC_ZERO_MEMORY(pInit, sizeof(*pInit));
     pInit->onRead       = onRead;
     pInit->onSeek       = onSeek;
+    pInit->onTell       = onTell;
     pInit->onMeta       = onMeta;
     pInit->container    = container;
     pInit->pUserData    = pUserData;
@@ -7737,6 +7923,7 @@ static drflac_bool32 drflac__init_private(drflac_init_info* pInit, drflac_read_p
 
     pInit->bs.onRead    = onRead;
     pInit->bs.onSeek    = onSeek;
+    pInit->bs.onTell    = onTell;
     pInit->bs.pUserData = pUserData;
     drflac__reset_cache(&pInit->bs);
 
@@ -7769,7 +7956,7 @@ static drflac_bool32 drflac__init_private(drflac_init_info* pInit, drflac_read_p
                 headerSize += 10;
             }
 
-            if (!onSeek(pUserData, headerSize, drflac_seek_origin_current)) {
+            if (!onSeek(pUserData, headerSize, DRFLAC_SEEK_CUR)) {
                 return DRFLAC_FALSE;    /* Failed to seek past the tag. */
             }
             pInit->runningFilePos += headerSize;
@@ -7821,25 +8008,25 @@ static void drflac__init_from_info(drflac* pFlac, const drflac_init_info* pInit)
 }
 
 
-static drflac* drflac_open_with_metadata_private(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_meta_proc onMeta, drflac_container container, void* pUserData, void* pUserDataMD, const drflac_allocation_callbacks* pAllocationCallbacks)
+static drflac* drflac_open_with_metadata_private(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, drflac_meta_proc onMeta, drflac_container container, void* pUserData, void* pUserDataMD, const drflac_allocation_callbacks* pAllocationCallbacks)
 {
     drflac_init_info init;
     drflac_uint32 allocationSize;
     drflac_uint32 wholeSIMDVectorCountPerChannel;
     drflac_uint32 decodedSamplesAllocationSize;
 #ifndef DR_FLAC_NO_OGG
-    drflac_oggbs oggbs;
+    drflac_oggbs* pOggbs = NULL;
 #endif
     drflac_uint64 firstFramePos;
     drflac_uint64 seektablePos;
-    drflac_uint32 seektableSize;
+    drflac_uint32 seekpointCount;
     drflac_allocation_callbacks allocationCallbacks;
     drflac* pFlac;
 
     /* CPU support first. */
     drflac__init_cpu_caps();
 
-    if (!drflac__init_private(&init, onRead, onSeek, onMeta, container, pUserData, pUserDataMD)) {
+    if (!drflac__init_private(&init, onRead, onSeek, onTell, onMeta, container, pUserData, pUserDataMD)) {
         return NULL;
     }
 
@@ -7886,18 +8073,22 @@ static drflac* drflac_open_with_metadata_private(drflac_read_proc onRead, drflac
     /* There's additional data required for Ogg streams. */
     if (init.container == drflac_container_ogg) {
         allocationSize += sizeof(drflac_oggbs);
-    }
 
-    DRFLAC_ZERO_MEMORY(&oggbs, sizeof(oggbs));
-    if (init.container == drflac_container_ogg) {
-        oggbs.onRead = onRead;
-        oggbs.onSeek = onSeek;
-        oggbs.pUserData = pUserData;
-        oggbs.currentBytePos = init.oggFirstBytePos;
-        oggbs.firstBytePos = init.oggFirstBytePos;
-        oggbs.serialNumber = init.oggSerial;
-        oggbs.bosPageHeader = init.oggBosHeader;
-        oggbs.bytesRemainingInPage = 0;
+        pOggbs = (drflac_oggbs*)drflac__malloc_from_callbacks(sizeof(*pOggbs), &allocationCallbacks);
+        if (pOggbs == NULL) {
+            return NULL; /*DRFLAC_OUT_OF_MEMORY;*/
+        }
+
+        DRFLAC_ZERO_MEMORY(pOggbs, sizeof(*pOggbs));
+        pOggbs->onRead = onRead;
+        pOggbs->onSeek = onSeek;
+        pOggbs->onTell = onTell;
+        pOggbs->pUserData = pUserData;
+        pOggbs->currentBytePos = init.oggFirstBytePos;
+        pOggbs->firstBytePos = init.oggFirstBytePos;
+        pOggbs->serialNumber = init.oggSerial;
+        pOggbs->bosPageHeader = init.oggBosHeader;
+        pOggbs->bytesRemainingInPage = 0;
     }
 #endif
 
@@ -7906,32 +8097,46 @@ static drflac* drflac_open_with_metadata_private(drflac_read_proc onRead, drflac
     consist of only a single heap allocation. To this, the size of the seek table needs to be known, which we determine when reading
     and decoding the metadata.
     */
-    firstFramePos = 42;   /* <-- We know we are at byte 42 at this point. */
-    seektablePos  = 0;
-    seektableSize = 0;
+    firstFramePos  = 42;   /* <-- We know we are at byte 42 at this point. */
+    seektablePos   = 0;
+    seekpointCount = 0;
     if (init.hasMetadataBlocks) {
         drflac_read_proc onReadOverride = onRead;
         drflac_seek_proc onSeekOverride = onSeek;
+        drflac_tell_proc onTellOverride = onTell;
         void* pUserDataOverride = pUserData;
 
 #ifndef DR_FLAC_NO_OGG
         if (init.container == drflac_container_ogg) {
             onReadOverride = drflac__on_read_ogg;
             onSeekOverride = drflac__on_seek_ogg;
-            pUserDataOverride = (void*)&oggbs;
+            onTellOverride = drflac__on_tell_ogg;
+            pUserDataOverride = (void*)pOggbs;
         }
 #endif
 
-        if (!drflac__read_and_decode_metadata(onReadOverride, onSeekOverride, onMeta, pUserDataOverride, pUserDataMD, &firstFramePos, &seektablePos, &seektableSize, &allocationCallbacks)) {
+        if (!drflac__read_and_decode_metadata(onReadOverride, onSeekOverride, onTellOverride, onMeta, pUserDataOverride, pUserDataMD, &firstFramePos, &seektablePos, &seekpointCount, &allocationCallbacks)) {
+        #ifndef DR_FLAC_NO_OGG
+            drflac__free_from_callbacks(pOggbs, &allocationCallbacks);
+        #endif
             return NULL;
         }
 
-        allocationSize += seektableSize;
+        if ((0xFFFFFFFF - (seekpointCount * sizeof(drflac_seekpoint))) < allocationSize) {
+        #ifndef DR_FLAC_NO_OGG
+            drflac__free_from_callbacks(pOggbs, &allocationCallbacks);
+        #endif
+            return NULL;
+        }
+
+        allocationSize += seekpointCount * sizeof(drflac_seekpoint);
     }
 
-
-    pFlac = (drflac*)drflac__malloc_from_callbacks(allocationSize, &allocationCallbacks);
+    pFlac = (drflac*)drflac__malloc_from_callbacks((size_t)allocationSize, &allocationCallbacks);
     if (pFlac == NULL) {
+    #ifndef DR_FLAC_NO_OGG
+        drflac__free_from_callbacks(pOggbs, &allocationCallbacks);
+    #endif
         return NULL;
     }
 
@@ -7941,12 +8146,17 @@ static drflac* drflac_open_with_metadata_private(drflac_read_proc onRead, drflac
 
 #ifndef DR_FLAC_NO_OGG
     if (init.container == drflac_container_ogg) {
-        drflac_oggbs* pInternalOggbs = (drflac_oggbs*)((drflac_uint8*)pFlac->pDecodedSamples + decodedSamplesAllocationSize + seektableSize);
-        DRFLAC_COPY_MEMORY(pInternalOggbs, &oggbs, sizeof(oggbs));
+        drflac_oggbs* pInternalOggbs = (drflac_oggbs*)((drflac_uint8*)pFlac->pDecodedSamples + decodedSamplesAllocationSize + (seekpointCount * sizeof(drflac_seekpoint)));
+        DRFLAC_COPY_MEMORY(pInternalOggbs, pOggbs, sizeof(*pOggbs));
+
+        /* At this point the pOggbs object has been handed over to pInternalOggbs and can be freed. */
+        drflac__free_from_callbacks(pOggbs, &allocationCallbacks);
+        pOggbs = NULL;
 
         /* The Ogg bistream needs to be layered on top of the original bitstream. */
         pFlac->bs.onRead = drflac__on_read_ogg;
         pFlac->bs.onSeek = drflac__on_seek_ogg;
+        pFlac->bs.onTell = drflac__on_tell_ogg;
         pFlac->bs.pUserData = (void*)pInternalOggbs;
         pFlac->_oggbs = (void*)pInternalOggbs;
     }
@@ -7966,30 +8176,32 @@ static drflac* drflac_open_with_metadata_private(drflac_read_proc onRead, drflac
     {
         /* If we have a seektable we need to load it now, making sure we move back to where we were previously. */
         if (seektablePos != 0) {
-            pFlac->seekpointCount = seektableSize / sizeof(*pFlac->pSeekpoints);
+            pFlac->seekpointCount = seekpointCount;
             pFlac->pSeekpoints = (drflac_seekpoint*)((drflac_uint8*)pFlac->pDecodedSamples + decodedSamplesAllocationSize);
 
             DRFLAC_ASSERT(pFlac->bs.onSeek != NULL);
             DRFLAC_ASSERT(pFlac->bs.onRead != NULL);
 
             /* Seek to the seektable, then just read directly into our seektable buffer. */
-            if (pFlac->bs.onSeek(pFlac->bs.pUserData, (int)seektablePos, drflac_seek_origin_start)) {
-                if (pFlac->bs.onRead(pFlac->bs.pUserData, pFlac->pSeekpoints, seektableSize) == seektableSize) {
-                    /* Endian swap. */
-                    drflac_uint32 iSeekpoint;
-                    for (iSeekpoint = 0; iSeekpoint < pFlac->seekpointCount; ++iSeekpoint) {
+            if (pFlac->bs.onSeek(pFlac->bs.pUserData, (int)seektablePos, DRFLAC_SEEK_SET)) {
+                drflac_uint32 iSeekpoint;
+
+                for (iSeekpoint = 0; iSeekpoint < seekpointCount; iSeekpoint += 1) {
+                    if (pFlac->bs.onRead(pFlac->bs.pUserData, pFlac->pSeekpoints + iSeekpoint, DRFLAC_SEEKPOINT_SIZE_IN_BYTES) == DRFLAC_SEEKPOINT_SIZE_IN_BYTES) {
+                        /* Endian swap. */
                         pFlac->pSeekpoints[iSeekpoint].firstPCMFrame   = drflac__be2host_64(pFlac->pSeekpoints[iSeekpoint].firstPCMFrame);
                         pFlac->pSeekpoints[iSeekpoint].flacFrameOffset = drflac__be2host_64(pFlac->pSeekpoints[iSeekpoint].flacFrameOffset);
                         pFlac->pSeekpoints[iSeekpoint].pcmFrameCount   = drflac__be2host_16(pFlac->pSeekpoints[iSeekpoint].pcmFrameCount);
+                    } else {
+                        /* Failed to read the seektable. Pretend we don't have one. */
+                        pFlac->pSeekpoints = NULL;
+                        pFlac->seekpointCount = 0;
+                        break;
                     }
-                } else {
-                    /* Failed to read the seektable. Pretend we don't have one. */
-                    pFlac->pSeekpoints = NULL;
-                    pFlac->seekpointCount = 0;
                 }
 
                 /* We need to seek back to where we were. If this fails it's a critical error. */
-                if (!pFlac->bs.onSeek(pFlac->bs.pUserData, (int)pFlac->firstFLACFramePosInBytes, drflac_seek_origin_start)) {
+                if (!pFlac->bs.onSeek(pFlac->bs.pUserData, (int)pFlac->firstFLACFramePosInBytes, DRFLAC_SEEK_SET)) {
                     drflac__free_from_callbacks(pFlac, &allocationCallbacks);
                     return NULL;
                 }
@@ -8034,8 +8246,11 @@ static drflac* drflac_open_with_metadata_private(drflac_read_proc onRead, drflac
 
 #ifndef DR_FLAC_NO_STDIO
 #include <stdio.h>
+#ifndef DR_FLAC_NO_WCHAR
 #include <wchar.h>      /* For wcslen(), wcsrtombs() */
+#endif
 
+/* Errno */
 /* drflac_result_from_errno() is only used for fopen() and wfopen() so putting it inside DR_WAV_NO_STDIO for now. If something else needs this later we can move it out. */
 #include <errno.h>
 static drflac_result drflac_result_from_errno(int e)
@@ -8157,7 +8372,7 @@ static drflac_result drflac_result_from_errno(int e)
     #ifdef ENOSYS
         case ENOSYS: return DRFLAC_NOT_IMPLEMENTED;
     #endif
-    #ifdef ENOTEMPTY
+    #if defined(ENOTEMPTY) && ENOTEMPTY != EEXIST   /* In AIX, ENOTEMPTY and EEXIST use the same value. */
         case ENOTEMPTY: return DRFLAC_DIRECTORY_NOT_EMPTY;
     #endif
     #ifdef ELOOP
@@ -8439,7 +8654,9 @@ static drflac_result drflac_result_from_errno(int e)
         default: return DRFLAC_ERROR;
     }
 }
+/* End Errno */
 
+/* fopen */
 static drflac_result drflac_fopen(FILE** ppFile, const char* pFilePath, const char* pOpenMode)
 {
 #if defined(_MSC_VER) && _MSC_VER >= 1400
@@ -8500,6 +8717,7 @@ fallback, so if you notice your compiler not detecting this properly I'm happy t
     #endif
 #endif
 
+#ifndef DR_FLAC_NO_WCHAR
 static drflac_result drflac_wfopen(FILE** ppFile, const wchar_t* pFilePath, const wchar_t* pOpenMode, const drflac_allocation_callbacks* pAllocationCallbacks)
 {
     if (ppFile != NULL) {
@@ -8528,10 +8746,23 @@ static drflac_result drflac_wfopen(FILE** ppFile, const wchar_t* pFilePath, cons
     }
 #else
     /*
-    Use fopen() on anything other than Windows. Requires a conversion. This is annoying because fopen() is locale specific. The only real way I can
-    think of to do this is with wcsrtombs(). Note that wcstombs() is apparently not thread-safe because it uses a static global mbstate_t object for
-    maintaining state. I've checked this with -std=c89 and it works, but if somebody get's a compiler error I'll look into improving compatibility.
+    Use fopen() on anything other than Windows. Requires a conversion. This is annoying because
+	fopen() is locale specific. The only real way I can think of to do this is with wcsrtombs(). Note
+	that wcstombs() is apparently not thread-safe because it uses a static global mbstate_t object for
+    maintaining state. I've checked this with -std=c89 and it works, but if somebody get's a compiler
+	error I'll look into improving compatibility.
     */
+
+	/*
+	Some compilers don't support wchar_t or wcsrtombs() which we're using below. In this case we just
+	need to abort with an error. If you encounter a compiler lacking such support, add it to this list
+	and submit a bug report and it'll be added to the library upstream.
+	*/
+	#if defined(__DJGPP__)
+	{
+		/* Nothing to do here. This will fall through to the error check below. */
+	}
+	#else
     {
         mbstate_t mbs;
         size_t lenMB;
@@ -8573,6 +8804,7 @@ static drflac_result drflac_wfopen(FILE** ppFile, const wchar_t* pFilePath, cons
 
         drflac__free_from_callbacks(pFilePathMB, pAllocationCallbacks);
     }
+	#endif
 
     if (*ppFile == NULL) {
         return DRFLAC_ERROR;
@@ -8581,6 +8813,8 @@ static drflac_result drflac_wfopen(FILE** ppFile, const wchar_t* pFilePath, cons
 
     return DRFLAC_SUCCESS;
 }
+#endif
+/* End fopen */
 
 static size_t drflac__on_read_stdio(void* pUserData, void* bufferOut, size_t bytesToRead)
 {
@@ -8589,10 +8823,40 @@ static size_t drflac__on_read_stdio(void* pUserData, void* bufferOut, size_t byt
 
 static drflac_bool32 drflac__on_seek_stdio(void* pUserData, int offset, drflac_seek_origin origin)
 {
-    DRFLAC_ASSERT(offset >= 0);  /* <-- Never seek backwards. */
+    int whence = SEEK_SET;
+    if (origin == DRFLAC_SEEK_CUR) {
+        whence = SEEK_CUR;
+    } else if (origin == DRFLAC_SEEK_END) {
+        whence = SEEK_END;
+    }
 
-    return fseek((FILE*)pUserData, offset, (origin == drflac_seek_origin_current) ? SEEK_CUR : SEEK_SET) == 0;
+    return fseek((FILE*)pUserData, offset, whence) == 0;
 }
+
+static drflac_bool32 drflac__on_tell_stdio(void* pUserData, drflac_int64* pCursor)
+{
+    FILE* pFileStdio = (FILE*)pUserData;
+    drflac_int64 result;
+
+    /* These were all validated at a higher level. */
+    DRFLAC_ASSERT(pFileStdio != NULL);
+    DRFLAC_ASSERT(pCursor    != NULL);
+
+#if defined(_WIN32) && !defined(NXDK)
+    #if defined(_MSC_VER) && _MSC_VER > 1200
+        result = _ftelli64(pFileStdio);
+    #else
+        result = ftell(pFileStdio);
+    #endif
+#else
+    result = ftell(pFileStdio);
+#endif
+
+    *pCursor = result;
+
+    return DRFLAC_TRUE;
+}
+
 
 
 DRFLAC_API drflac* drflac_open_file(const char* pFileName, const drflac_allocation_callbacks* pAllocationCallbacks)
@@ -8604,7 +8868,7 @@ DRFLAC_API drflac* drflac_open_file(const char* pFileName, const drflac_allocati
         return NULL;
     }
 
-    pFlac = drflac_open(drflac__on_read_stdio, drflac__on_seek_stdio, (void*)pFile, pAllocationCallbacks);
+    pFlac = drflac_open(drflac__on_read_stdio, drflac__on_seek_stdio, drflac__on_tell_stdio, (void*)pFile, pAllocationCallbacks);
     if (pFlac == NULL) {
         fclose(pFile);
         return NULL;
@@ -8613,6 +8877,7 @@ DRFLAC_API drflac* drflac_open_file(const char* pFileName, const drflac_allocati
     return pFlac;
 }
 
+#ifndef DR_FLAC_NO_WCHAR
 DRFLAC_API drflac* drflac_open_file_w(const wchar_t* pFileName, const drflac_allocation_callbacks* pAllocationCallbacks)
 {
     drflac* pFlac;
@@ -8622,7 +8887,7 @@ DRFLAC_API drflac* drflac_open_file_w(const wchar_t* pFileName, const drflac_all
         return NULL;
     }
 
-    pFlac = drflac_open(drflac__on_read_stdio, drflac__on_seek_stdio, (void*)pFile, pAllocationCallbacks);
+    pFlac = drflac_open(drflac__on_read_stdio, drflac__on_seek_stdio, drflac__on_tell_stdio, (void*)pFile, pAllocationCallbacks);
     if (pFlac == NULL) {
         fclose(pFile);
         return NULL;
@@ -8630,6 +8895,7 @@ DRFLAC_API drflac* drflac_open_file_w(const wchar_t* pFileName, const drflac_all
 
     return pFlac;
 }
+#endif
 
 DRFLAC_API drflac* drflac_open_file_with_metadata(const char* pFileName, drflac_meta_proc onMeta, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks)
 {
@@ -8640,7 +8906,7 @@ DRFLAC_API drflac* drflac_open_file_with_metadata(const char* pFileName, drflac_
         return NULL;
     }
 
-    pFlac = drflac_open_with_metadata_private(drflac__on_read_stdio, drflac__on_seek_stdio, onMeta, drflac_container_unknown, (void*)pFile, pUserData, pAllocationCallbacks);
+    pFlac = drflac_open_with_metadata_private(drflac__on_read_stdio, drflac__on_seek_stdio, drflac__on_tell_stdio, onMeta, drflac_container_unknown, (void*)pFile, pUserData, pAllocationCallbacks);
     if (pFlac == NULL) {
         fclose(pFile);
         return pFlac;
@@ -8649,6 +8915,7 @@ DRFLAC_API drflac* drflac_open_file_with_metadata(const char* pFileName, drflac_
     return pFlac;
 }
 
+#ifndef DR_FLAC_NO_WCHAR
 DRFLAC_API drflac* drflac_open_file_with_metadata_w(const wchar_t* pFileName, drflac_meta_proc onMeta, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks)
 {
     drflac* pFlac;
@@ -8658,7 +8925,7 @@ DRFLAC_API drflac* drflac_open_file_with_metadata_w(const wchar_t* pFileName, dr
         return NULL;
     }
 
-    pFlac = drflac_open_with_metadata_private(drflac__on_read_stdio, drflac__on_seek_stdio, onMeta, drflac_container_unknown, (void*)pFile, pUserData, pAllocationCallbacks);
+    pFlac = drflac_open_with_metadata_private(drflac__on_read_stdio, drflac__on_seek_stdio, drflac__on_tell_stdio, onMeta, drflac_container_unknown, (void*)pFile, pUserData, pAllocationCallbacks);
     if (pFlac == NULL) {
         fclose(pFile);
         return pFlac;
@@ -8666,6 +8933,7 @@ DRFLAC_API drflac* drflac_open_file_with_metadata_w(const wchar_t* pFileName, dr
 
     return pFlac;
 }
+#endif
 #endif  /* DR_FLAC_NO_STDIO */
 
 static size_t drflac__on_read_memory(void* pUserData, void* bufferOut, size_t bytesToRead)
@@ -8692,28 +8960,43 @@ static size_t drflac__on_read_memory(void* pUserData, void* bufferOut, size_t by
 static drflac_bool32 drflac__on_seek_memory(void* pUserData, int offset, drflac_seek_origin origin)
 {
     drflac__memory_stream* memoryStream = (drflac__memory_stream*)pUserData;
+    drflac_int64 newCursor;
 
     DRFLAC_ASSERT(memoryStream != NULL);
-    DRFLAC_ASSERT(offset >= 0); /* <-- Never seek backwards. */
 
-    if (offset > (drflac_int64)memoryStream->dataSize) {
+    if (origin == DRFLAC_SEEK_SET) {
+        newCursor = 0;
+    } else if (origin == DRFLAC_SEEK_CUR) {
+        newCursor = (drflac_int64)memoryStream->currentReadPos;
+    } else if (origin == DRFLAC_SEEK_END) {
+        newCursor = (drflac_int64)memoryStream->dataSize;
+    } else {
+        DRFLAC_ASSERT(!"Invalid seek origin");
         return DRFLAC_FALSE;
     }
 
-    if (origin == drflac_seek_origin_current) {
-        if (memoryStream->currentReadPos + offset <= memoryStream->dataSize) {
-            memoryStream->currentReadPos += offset;
-        } else {
-            return DRFLAC_FALSE;  /* Trying to seek too far forward. */
-        }
-    } else {
-        if ((drflac_uint32)offset <= memoryStream->dataSize) {
-            memoryStream->currentReadPos = offset;
-        } else {
-            return DRFLAC_FALSE;  /* Trying to seek too far forward. */
-        }
+    newCursor += offset;
+
+    if (newCursor < 0) {
+        return DRFLAC_FALSE;  /* Trying to seek prior to the start of the buffer. */
+    }
+    if ((size_t)newCursor > memoryStream->dataSize) {
+        return DRFLAC_FALSE;  /* Trying to seek beyond the end of the buffer. */
     }
 
+    memoryStream->currentReadPos = (size_t)newCursor;
+
+    return DRFLAC_TRUE;
+}
+
+static drflac_bool32 drflac__on_tell_memory(void* pUserData, drflac_int64* pCursor)
+{
+    drflac__memory_stream* memoryStream = (drflac__memory_stream*)pUserData;
+
+    DRFLAC_ASSERT(memoryStream != NULL);
+    DRFLAC_ASSERT(pCursor != NULL);
+
+    *pCursor = (drflac_int64)memoryStream->currentReadPos;
     return DRFLAC_TRUE;
 }
 
@@ -8725,7 +9008,7 @@ DRFLAC_API drflac* drflac_open_memory(const void* pData, size_t dataSize, const 
     memoryStream.data = (const drflac_uint8*)pData;
     memoryStream.dataSize = dataSize;
     memoryStream.currentReadPos = 0;
-    pFlac = drflac_open(drflac__on_read_memory, drflac__on_seek_memory, &memoryStream, pAllocationCallbacks);
+    pFlac = drflac_open(drflac__on_read_memory, drflac__on_seek_memory, drflac__on_tell_memory, &memoryStream, pAllocationCallbacks);
     if (pFlac == NULL) {
         return NULL;
     }
@@ -8756,7 +9039,7 @@ DRFLAC_API drflac* drflac_open_memory_with_metadata(const void* pData, size_t da
     memoryStream.data = (const drflac_uint8*)pData;
     memoryStream.dataSize = dataSize;
     memoryStream.currentReadPos = 0;
-    pFlac = drflac_open_with_metadata_private(drflac__on_read_memory, drflac__on_seek_memory, onMeta, drflac_container_unknown, &memoryStream, pUserData, pAllocationCallbacks);
+    pFlac = drflac_open_with_metadata_private(drflac__on_read_memory, drflac__on_seek_memory, drflac__on_tell_memory, onMeta, drflac_container_unknown, &memoryStream, pUserData, pAllocationCallbacks);
     if (pFlac == NULL) {
         return NULL;
     }
@@ -8781,22 +9064,22 @@ DRFLAC_API drflac* drflac_open_memory_with_metadata(const void* pData, size_t da
 
 
 
-DRFLAC_API drflac* drflac_open(drflac_read_proc onRead, drflac_seek_proc onSeek, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks)
+DRFLAC_API drflac* drflac_open(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks)
 {
-    return drflac_open_with_metadata_private(onRead, onSeek, NULL, drflac_container_unknown, pUserData, pUserData, pAllocationCallbacks);
+    return drflac_open_with_metadata_private(onRead, onSeek, onTell, NULL, drflac_container_unknown, pUserData, pUserData, pAllocationCallbacks);
 }
-DRFLAC_API drflac* drflac_open_relaxed(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_container container, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks)
+DRFLAC_API drflac* drflac_open_relaxed(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, drflac_container container, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks)
 {
-    return drflac_open_with_metadata_private(onRead, onSeek, NULL, container, pUserData, pUserData, pAllocationCallbacks);
+    return drflac_open_with_metadata_private(onRead, onSeek, onTell, NULL, container, pUserData, pUserData, pAllocationCallbacks);
 }
 
-DRFLAC_API drflac* drflac_open_with_metadata(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_meta_proc onMeta, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks)
+DRFLAC_API drflac* drflac_open_with_metadata(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, drflac_meta_proc onMeta, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks)
 {
-    return drflac_open_with_metadata_private(onRead, onSeek, onMeta, drflac_container_unknown, pUserData, pUserData, pAllocationCallbacks);
+    return drflac_open_with_metadata_private(onRead, onSeek, onTell, onMeta, drflac_container_unknown, pUserData, pUserData, pAllocationCallbacks);
 }
-DRFLAC_API drflac* drflac_open_with_metadata_relaxed(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_meta_proc onMeta, drflac_container container, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks)
+DRFLAC_API drflac* drflac_open_with_metadata_relaxed(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, drflac_meta_proc onMeta, drflac_container container, void* pUserData, const drflac_allocation_callbacks* pAllocationCallbacks)
 {
-    return drflac_open_with_metadata_private(onRead, onSeek, onMeta, container, pUserData, pUserData, pAllocationCallbacks);
+    return drflac_open_with_metadata_private(onRead, onSeek, onTell, onMeta, container, pUserData, pUserData, pAllocationCallbacks);
 }
 
 DRFLAC_API void drflac_close(drflac* pFlac)
@@ -11541,6 +11824,7 @@ DRFLAC_API drflac_bool32 drflac_seek_to_pcm_frame(drflac* pFlac, drflac_uint64 p
 
 /* High Level APIs */
 
+/* SIZE_MAX */
 #if defined(SIZE_MAX)
     #define DRFLAC_SIZE_MAX  SIZE_MAX
 #else
@@ -11550,6 +11834,7 @@ DRFLAC_API drflac_bool32 drflac_seek_to_pcm_frame(drflac* pFlac, drflac_uint64 p
         #define DRFLAC_SIZE_MAX  0xFFFFFFFF
     #endif
 #endif
+/* End SIZE_MAX */
 
 
 /* Using a macro as the definition of the drflac__full_decode_and_close_*() API family. Sue me. */
@@ -11558,57 +11843,42 @@ static type* drflac__full_read_and_close_ ## extension (drflac* pFlac, unsigned 
 {                                                                                                                                                                   \
     type* pSampleData = NULL;                                                                                                                                       \
     drflac_uint64 totalPCMFrameCount;                                                                                                                               \
+    type buffer[4096];                                                                                                                                              \
+    drflac_uint64 pcmFramesRead;                                                                                                                                    \
+    size_t sampleDataBufferSize = sizeof(buffer);                                                                                                                   \
                                                                                                                                                                     \
     DRFLAC_ASSERT(pFlac != NULL);                                                                                                                                   \
                                                                                                                                                                     \
-    totalPCMFrameCount = pFlac->totalPCMFrameCount;                                                                                                                 \
+    totalPCMFrameCount = 0;                                                                                                                                         \
                                                                                                                                                                     \
-    if (totalPCMFrameCount == 0) {                                                                                                                                  \
-        type buffer[4096];                                                                                                                                          \
-        drflac_uint64 pcmFramesRead;                                                                                                                                \
-        size_t sampleDataBufferSize = sizeof(buffer);                                                                                                               \
+    pSampleData = (type*)drflac__malloc_from_callbacks(sampleDataBufferSize, &pFlac->allocationCallbacks);                                                          \
+    if (pSampleData == NULL) {                                                                                                                                      \
+        goto on_error;                                                                                                                                              \
+    }                                                                                                                                                               \
                                                                                                                                                                     \
-        pSampleData = (type*)drflac__malloc_from_callbacks(sampleDataBufferSize, &pFlac->allocationCallbacks);                                                      \
-        if (pSampleData == NULL) {                                                                                                                                  \
-            goto on_error;                                                                                                                                          \
-        }                                                                                                                                                           \
+    while ((pcmFramesRead = (drflac_uint64)drflac_read_pcm_frames_##extension(pFlac, sizeof(buffer)/sizeof(buffer[0])/pFlac->channels, buffer)) > 0) {              \
+        if (((totalPCMFrameCount + pcmFramesRead) * pFlac->channels * sizeof(type)) > sampleDataBufferSize) {                                                       \
+            type* pNewSampleData;                                                                                                                                   \
+            size_t newSampleDataBufferSize;                                                                                                                         \
                                                                                                                                                                     \
-        while ((pcmFramesRead = (drflac_uint64)drflac_read_pcm_frames_##extension(pFlac, sizeof(buffer)/sizeof(buffer[0])/pFlac->channels, buffer)) > 0) {          \
-            if (((totalPCMFrameCount + pcmFramesRead) * pFlac->channels * sizeof(type)) > sampleDataBufferSize) {                                                   \
-                type* pNewSampleData;                                                                                                                               \
-                size_t newSampleDataBufferSize;                                                                                                                     \
-                                                                                                                                                                    \
-                newSampleDataBufferSize = sampleDataBufferSize * 2;                                                                                                 \
-                pNewSampleData = (type*)drflac__realloc_from_callbacks(pSampleData, newSampleDataBufferSize, sampleDataBufferSize, &pFlac->allocationCallbacks);    \
-                if (pNewSampleData == NULL) {                                                                                                                       \
-                    drflac__free_from_callbacks(pSampleData, &pFlac->allocationCallbacks);                                                                          \
-                    goto on_error;                                                                                                                                  \
-                }                                                                                                                                                   \
-                                                                                                                                                                    \
-                sampleDataBufferSize = newSampleDataBufferSize;                                                                                                     \
-                pSampleData = pNewSampleData;                                                                                                                       \
+            newSampleDataBufferSize = sampleDataBufferSize * 2;                                                                                                     \
+            pNewSampleData = (type*)drflac__realloc_from_callbacks(pSampleData, newSampleDataBufferSize, sampleDataBufferSize, &pFlac->allocationCallbacks);        \
+            if (pNewSampleData == NULL) {                                                                                                                           \
+                drflac__free_from_callbacks(pSampleData, &pFlac->allocationCallbacks);                                                                              \
+                goto on_error;                                                                                                                                      \
             }                                                                                                                                                       \
                                                                                                                                                                     \
-            DRFLAC_COPY_MEMORY(pSampleData + (totalPCMFrameCount*pFlac->channels), buffer, (size_t)(pcmFramesRead*pFlac->channels*sizeof(type)));                   \
-            totalPCMFrameCount += pcmFramesRead;                                                                                                                    \
+            sampleDataBufferSize = newSampleDataBufferSize;                                                                                                         \
+            pSampleData = pNewSampleData;                                                                                                                           \
         }                                                                                                                                                           \
                                                                                                                                                                     \
-        /* At this point everything should be decoded, but we just want to fill the unused part buffer with silence - need to                                       \
-           protect those ears from random noise! */                                                                                                                 \
-        DRFLAC_ZERO_MEMORY(pSampleData + (totalPCMFrameCount*pFlac->channels), (size_t)(sampleDataBufferSize - totalPCMFrameCount*pFlac->channels*sizeof(type)));   \
-    } else {                                                                                                                                                        \
-        drflac_uint64 dataSize = totalPCMFrameCount*pFlac->channels*sizeof(type);                                                                                   \
-        if (dataSize > (drflac_uint64)DRFLAC_SIZE_MAX) {                                                                                                            \
-            goto on_error;  /* The decoded data is too big. */                                                                                                      \
-        }                                                                                                                                                           \
-                                                                                                                                                                    \
-        pSampleData = (type*)drflac__malloc_from_callbacks((size_t)dataSize, &pFlac->allocationCallbacks);    /* <-- Safe cast as per the check above. */           \
-        if (pSampleData == NULL) {                                                                                                                                  \
-            goto on_error;                                                                                                                                          \
-        }                                                                                                                                                           \
-                                                                                                                                                                    \
-        totalPCMFrameCount = drflac_read_pcm_frames_##extension(pFlac, pFlac->totalPCMFrameCount, pSampleData);                                                     \
+        DRFLAC_COPY_MEMORY(pSampleData + (totalPCMFrameCount*pFlac->channels), buffer, (size_t)(pcmFramesRead*pFlac->channels*sizeof(type)));                       \
+        totalPCMFrameCount += pcmFramesRead;                                                                                                                        \
     }                                                                                                                                                               \
+                                                                                                                                                                    \
+    /* At this point everything should be decoded, but we just want to fill the unused part buffer with silence - need to                                           \
+       protect those ears from random noise! */                                                                                                                     \
+    DRFLAC_ZERO_MEMORY(pSampleData + (totalPCMFrameCount*pFlac->channels), (size_t)(sampleDataBufferSize - totalPCMFrameCount*pFlac->channels*sizeof(type)));       \
                                                                                                                                                                     \
     if (sampleRateOut) *sampleRateOut = pFlac->sampleRate;                                                                                                          \
     if (channelsOut) *channelsOut = pFlac->channels;                                                                                                                \
@@ -11626,7 +11896,7 @@ DRFLAC_DEFINE_FULL_READ_AND_CLOSE(s32, drflac_int32)
 DRFLAC_DEFINE_FULL_READ_AND_CLOSE(s16, drflac_int16)
 DRFLAC_DEFINE_FULL_READ_AND_CLOSE(f32, float)
 
-DRFLAC_API drflac_int32* drflac_open_and_read_pcm_frames_s32(drflac_read_proc onRead, drflac_seek_proc onSeek, void* pUserData, unsigned int* channelsOut, unsigned int* sampleRateOut, drflac_uint64* totalPCMFrameCountOut, const drflac_allocation_callbacks* pAllocationCallbacks)
+DRFLAC_API drflac_int32* drflac_open_and_read_pcm_frames_s32(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, void* pUserData, unsigned int* channelsOut, unsigned int* sampleRateOut, drflac_uint64* totalPCMFrameCountOut, const drflac_allocation_callbacks* pAllocationCallbacks)
 {
     drflac* pFlac;
 
@@ -11640,7 +11910,7 @@ DRFLAC_API drflac_int32* drflac_open_and_read_pcm_frames_s32(drflac_read_proc on
         *totalPCMFrameCountOut = 0;
     }
 
-    pFlac = drflac_open(onRead, onSeek, pUserData, pAllocationCallbacks);
+    pFlac = drflac_open(onRead, onSeek, onTell, pUserData, pAllocationCallbacks);
     if (pFlac == NULL) {
         return NULL;
     }
@@ -11648,7 +11918,7 @@ DRFLAC_API drflac_int32* drflac_open_and_read_pcm_frames_s32(drflac_read_proc on
     return drflac__full_read_and_close_s32(pFlac, channelsOut, sampleRateOut, totalPCMFrameCountOut);
 }
 
-DRFLAC_API drflac_int16* drflac_open_and_read_pcm_frames_s16(drflac_read_proc onRead, drflac_seek_proc onSeek, void* pUserData, unsigned int* channelsOut, unsigned int* sampleRateOut, drflac_uint64* totalPCMFrameCountOut, const drflac_allocation_callbacks* pAllocationCallbacks)
+DRFLAC_API drflac_int16* drflac_open_and_read_pcm_frames_s16(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, void* pUserData, unsigned int* channelsOut, unsigned int* sampleRateOut, drflac_uint64* totalPCMFrameCountOut, const drflac_allocation_callbacks* pAllocationCallbacks)
 {
     drflac* pFlac;
 
@@ -11662,7 +11932,7 @@ DRFLAC_API drflac_int16* drflac_open_and_read_pcm_frames_s16(drflac_read_proc on
         *totalPCMFrameCountOut = 0;
     }
 
-    pFlac = drflac_open(onRead, onSeek, pUserData, pAllocationCallbacks);
+    pFlac = drflac_open(onRead, onSeek, onTell, pUserData, pAllocationCallbacks);
     if (pFlac == NULL) {
         return NULL;
     }
@@ -11670,7 +11940,7 @@ DRFLAC_API drflac_int16* drflac_open_and_read_pcm_frames_s16(drflac_read_proc on
     return drflac__full_read_and_close_s16(pFlac, channelsOut, sampleRateOut, totalPCMFrameCountOut);
 }
 
-DRFLAC_API float* drflac_open_and_read_pcm_frames_f32(drflac_read_proc onRead, drflac_seek_proc onSeek, void* pUserData, unsigned int* channelsOut, unsigned int* sampleRateOut, drflac_uint64* totalPCMFrameCountOut, const drflac_allocation_callbacks* pAllocationCallbacks)
+DRFLAC_API float* drflac_open_and_read_pcm_frames_f32(drflac_read_proc onRead, drflac_seek_proc onSeek, drflac_tell_proc onTell, void* pUserData, unsigned int* channelsOut, unsigned int* sampleRateOut, drflac_uint64* totalPCMFrameCountOut, const drflac_allocation_callbacks* pAllocationCallbacks)
 {
     drflac* pFlac;
 
@@ -11684,7 +11954,7 @@ DRFLAC_API float* drflac_open_and_read_pcm_frames_f32(drflac_read_proc onRead, d
         *totalPCMFrameCountOut = 0;
     }
 
-    pFlac = drflac_open(onRead, onSeek, pUserData, pAllocationCallbacks);
+    pFlac = drflac_open(onRead, onSeek, onTell, pUserData, pAllocationCallbacks);
     if (pFlac == NULL) {
         return NULL;
     }
@@ -11933,6 +12203,61 @@ DRFLAC_API drflac_bool32 drflac_next_cuesheet_track(drflac_cuesheet_track_iterat
 /*
 REVISION HISTORY
 ================
+v0.13.4 - TBD
+  - Add a bounds check when allocating memory during metadata processing.
+  - Fix a possible overflow error when parsing picture metadata.
+
+v0.13.3 - 2026-01-17
+  - Fix a compiler compatibility issue with some inlined assembly.
+  - Fix a compilation warning.
+
+v0.13.2 - 2025-12-02
+  - Improve robustness of the parsing of picture metadata to improve support for memory constrained embedded devices.
+  - Fix a warning about an assigned by unused variable.
+  - Improvements to drflac_open_and_read_pcm_frames_*() and family to avoid excessively large memory allocations from malformed files.
+
+v0.13.1 - 2025-09-10
+  - Fix an error with the NXDK build.
+
+v0.13.0 - 2025-07-23
+  - API CHANGE: Seek origin enums have been renamed to match the naming convention used by other dr_libs libraries:
+    - drflac_seek_origin_start   -> DRFLAC_SEEK_SET
+    - drflac_seek_origin_current -> DRFLAC_SEEK_CUR
+    - DRFLAC_SEEK_END (new)
+  - API CHANGE: A new seek origin has been added to allow seeking from the end of the file. If you implement your own `onSeek` callback, you should now detect and handle `DRFLAC_SEEK_END`. If seeking to the end is not supported, return `DRFLAC_FALSE`. If you only use `*_open_file()` or `*_open_memory()`, you need not change anything.
+  - API CHANGE: An `onTell` callback has been added to the following functions:
+    - drflac_open()
+    - drflac_open_relaxed()
+    - drflac_open_with_metadata()
+    - drflac_open_with_metadata_relaxed()
+    - drflac_open_and_read_pcm_frames_s32()
+    - drflac_open_and_read_pcm_frames_s16()
+    - drflac_open_and_read_pcm_frames_f32()
+  - Fix compilation for AIX OS.
+
+v0.12.43 - 2024-12-17
+  - Fix a possible buffer overflow during decoding.
+  - Improve detection of ARM64EC
+
+v0.12.42 - 2023-11-02
+  - Fix build for ARMv6-M.
+  - Fix a compilation warning with GCC.
+
+v0.12.41 - 2023-06-17
+  - Fix an incorrect date in revision history. No functional change.
+
+v0.12.40 - 2023-05-22
+  - Minor code restructure. No functional change.
+
+v0.12.39 - 2022-09-17
+  - Fix compilation with DJGPP.
+  - Fix compilation error with Visual Studio 2019 and the ARM build.
+  - Fix an error with SSE 4.1 detection.
+  - Add support for disabling wchar_t with DR_WAV_NO_WCHAR.
+  - Improve compatibility with compilers which lack support for explicit struct packing.
+  - Improve compatibility with low-end and embedded hardware by reducing the amount of stack
+    allocation when loading an Ogg encapsulated file.
+
 v0.12.38 - 2022-04-10
   - Fix compilation error on older versions of GCC.
 
@@ -12354,7 +12679,7 @@ For more information, please refer to <http://unlicense.org/>
 ===============================================================================
 ALTERNATIVE 2 - MIT No Attribution
 ===============================================================================
-Copyright 2020 David Reid
+Copyright 2023 David Reid
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in

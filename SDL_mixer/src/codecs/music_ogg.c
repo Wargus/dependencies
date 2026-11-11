@@ -1,6 +1,6 @@
 /*
   SDL_mixer:  An audio mixer library based on the SDL library
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -26,6 +26,7 @@
 #include "SDL_loadso.h"
 
 #include "music_ogg.h"
+#include "remap_channels.h"
 #include "utils.h"
 
 #define OV_EXCLUDE_STATIC_CALLBACKS
@@ -73,6 +74,10 @@ static vorbis_loader vorbis;
     if (vorbis.FUNC == NULL) { Mix_SetError("Missing vorbis.framework or tremor.framework"); return -1; }
 #endif
 
+#ifdef __APPLE__
+    /* Need to turn off optimizations so weak framework load check works */
+    __attribute__ ((optnone))
+#endif
 static int OGG_Load(void)
 {
     if (vorbis.loaded == 0) {
@@ -179,28 +184,29 @@ static long sdl_tell_func(void *datasource)
     return (long)SDL_RWtell((SDL_RWops*)datasource);
 }
 
+static int sdl_close_func(void *datasource)
+{
+    (void)datasource;
+    return 0;
+}
+
 static int OGG_Seek(void *context, double time);
 static void OGG_Delete(void *context);
 
 static int OGG_UpdateSection(OGG_music *music)
 {
     vorbis_info *vi;
+    int new_buffer_size;
 
     vi = vorbis.ov_info(&music->vf, -1);
     if (!vi) {
-        Mix_SetError("ov_info returned NULL");
-        return -1;
+        return Mix_SetError("ov_info returned NULL");
     }
 
     if (vi->channels == music->vi.channels && vi->rate == music->vi.rate) {
         return 0;
     }
     SDL_memcpy(&music->vi, vi, sizeof(*vi));
-
-    if (music->buffer) {
-        SDL_free(music->buffer);
-        music->buffer = NULL;
-    }
 
     if (music->stream) {
         SDL_FreeAudioStream(music->stream);
@@ -210,13 +216,25 @@ static int OGG_UpdateSection(OGG_music *music)
     music->stream = SDL_NewAudioStream(AUDIO_S16SYS, (Uint8)vi->channels, (int)vi->rate,
                                        music_spec.format, music_spec.channels, music_spec.freq);
     if (!music->stream) {
+        SDL_free(music->buffer);
+        music->buffer      = NULL;
+        music->buffer_size = 0;
         return -1;
     }
 
-    music->buffer_size = music_spec.samples * (int)sizeof(Sint16) * vi->channels;
-    music->buffer = (char *)SDL_malloc((size_t)music->buffer_size);
-    if (!music->buffer) {
-        return -1;
+    new_buffer_size = music_spec.samples * (int)sizeof(Sint16) * vi->channels;
+
+    /* Note: never shrink the buffer, we just decoded data in there. */
+    if (new_buffer_size > music->buffer_size) {
+        char *new_buffer = (char *)SDL_realloc(music->buffer, new_buffer_size);
+        if (!new_buffer) {
+            SDL_free(music->buffer);
+            music->buffer      = NULL;
+            music->buffer_size = 0;
+            return -1;
+        }
+        music->buffer      = new_buffer;
+        music->buffer_size = new_buffer_size;
     }
     return 0;
 }
@@ -241,13 +259,13 @@ static void *OGG_CreateFromRW(SDL_RWops *src, int freesrc)
     music->volume = MIX_MAX_VOLUME;
     music->section = -1;
 
-    SDL_zero(callbacks);
     callbacks.read_func = sdl_read_func;
     callbacks.seek_func = sdl_seek_func;
+    callbacks.close_func = sdl_close_func;
     callbacks.tell_func = sdl_tell_func;
 
     if (vorbis.ov_open_callbacks(src, &music->vf, NULL, 0, callbacks) < 0) {
-        SDL_SetError("Not an Ogg Vorbis audio stream");
+        Mix_SetError("Not an Ogg Vorbis audio stream");
         SDL_free(music);
         return NULL;
     }
@@ -378,11 +396,10 @@ static int OGG_GetSome(void *context, void *data, int bytes, SDL_bool *done)
 #ifdef OGG_USE_TREMOR
     amount = (int)vorbis.ov_read(&music->vf, music->buffer, music->buffer_size, &section);
 #else
-    amount = (int)vorbis.ov_read(&music->vf, music->buffer, music->buffer_size, SDL_BYTEORDER == SDL_BIG_ENDIAN, 2, 1, &section);
+    amount = (int)vorbis.ov_read(&music->vf, music->buffer, music->buffer_size, SDL_BYTEORDER == SDL_BIG_ENDIAN, (int)sizeof(Sint16), 1, &section);
 #endif
     if (amount < 0) {
-        set_ov_error("ov_read", amount);
-        return -1;
+        return set_ov_error("ov_read", amount);
     }
 
     if (section != music->section) {
@@ -392,13 +409,16 @@ static int OGG_GetSome(void *context, void *data, int bytes, SDL_bool *done)
         }
     }
 
+    remap_channels_vorbis_s16((Sint16 *)music->buffer,
+                              amount / (int)sizeof(Sint16),
+                              music->vi.channels);
+
     pcmPos = vorbis.ov_pcm_tell(&music->vf);
     if (music->loop && (music->play_count != 1) && (pcmPos >= music->loop_end)) {
         amount -= (int)((pcmPos - music->loop_end) * music->vi.channels) * (int)sizeof(Sint16);
         result = vorbis.ov_pcm_seek(&music->vf, music->loop_start);
         if (result < 0) {
-            set_ov_error("ov_pcm_seek", result);
-            return -1;
+            return set_ov_error("ov_pcm_seek", result);
         } else {
             int play_count = -1;
             if (music->play_count > 0) {
@@ -472,7 +492,7 @@ static double OGG_Duration(void *context)
 #endif
 }
 
-static double   OGG_LoopStart(void *music_p)
+static double OGG_LoopStart(void *music_p)
 {
     OGG_music *music = (OGG_music *)music_p;
     if (music->loop > 0) {
@@ -481,7 +501,7 @@ static double   OGG_LoopStart(void *music_p)
     return -1.0;
 }
 
-static double   OGG_LoopEnd(void *music_p)
+static double OGG_LoopEnd(void *music_p)
 {
     OGG_music *music = (OGG_music *)music_p;
     if (music->loop > 0) {
@@ -490,7 +510,7 @@ static double   OGG_LoopEnd(void *music_p)
     return -1.0;
 }
 
-static double   OGG_LoopLength(void *music_p)
+static double OGG_LoopLength(void *music_p)
 {
     OGG_music *music = (OGG_music *)music_p;
     if (music->loop > 0) {
@@ -543,6 +563,8 @@ Mix_MusicInterface Mix_MusicInterface_OGG =
     OGG_LoopEnd,
     OGG_LoopLength,
     OGG_GetMetaTag,   /* GetMetaTag */
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     NULL,   /* Pause */
     NULL,   /* Resume */
     OGG_Stop,
@@ -553,4 +575,3 @@ Mix_MusicInterface Mix_MusicInterface_OGG =
 
 #endif /* MUSIC_OGG */
 
-/* vi: set ts=4 sw=4 expandtab: */

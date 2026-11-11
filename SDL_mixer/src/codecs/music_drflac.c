@@ -1,6 +1,6 @@
 /*
   SDL_mixer:  An audio mixer library based on the SDL library
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -77,11 +77,31 @@ static size_t DRFLAC_ReadCB(void *context, void *buf, size_t size)
 static drflac_bool32 DRFLAC_SeekCB(void *context, int offset, drflac_seek_origin origin)
 {
     DRFLAC_Music *music = (DRFLAC_Music *)context;
-    int whence = (origin == drflac_seek_origin_start) ? RW_SEEK_SET : RW_SEEK_CUR;
+    int whence;
+    switch (origin) {
+    case DRFLAC_SEEK_SET:
+        whence = RW_SEEK_SET;
+        break;
+    case DRFLAC_SEEK_CUR:
+        whence = RW_SEEK_CUR;
+        break;
+    case DRFLAC_SEEK_END:
+        whence = RW_SEEK_END;
+        break;
+    default:
+        return DRFLAC_FALSE;
+    }
     if (MP3_RWseek(&music->file, offset, whence) < 0) {
         return DRFLAC_FALSE;
     }
     return DRFLAC_TRUE;
+}
+
+static drflac_bool32 DRFLAC_TellCB(void *context, drflac_int64 *pos)
+{
+    DRFLAC_Music *music = (DRFLAC_Music *)context;
+    *pos = MP3_RWtell(&music->file);
+    return (*pos < 0) ? DRFLAC_FALSE : DRFLAC_TRUE;
 }
 
 static void DRFLAC_MetaCB(void *context, drflac_metadata *metadata)
@@ -176,7 +196,7 @@ static void *DRFLAC_CreateFromRW(SDL_RWops *src, int freesrc)
 
     meta_tags_init(&music->tags);
 
-    music->dec = drflac_open_with_metadata(DRFLAC_ReadCB, DRFLAC_SeekCB, DRFLAC_MetaCB, music, NULL);
+    music->dec = drflac_open_with_metadata(DRFLAC_ReadCB, DRFLAC_SeekCB, DRFLAC_TellCB, DRFLAC_MetaCB, music, NULL);
     if (!music->dec) {
         SDL_free(music);
         Mix_SetError("music_drflac: corrupt flac file (bad stream).");
@@ -265,8 +285,7 @@ static int DRFLAC_GetSome(void *context, void *data, int bytes, SDL_bool *done)
 
     if (music->loop_flag) {
         if (!drflac_seek_to_pcm_frame(music->dec, music->loop_start)) {
-            SDL_SetError("drflac_seek_to_pcm_frame() failed");
-            return -1;
+            return Mix_SetError("drflac_seek_to_pcm_frame() failed");
         } else {
             int play_count = -1;
             if (music->play_count > 0) {
@@ -281,7 +300,7 @@ static int DRFLAC_GetSome(void *context, void *data, int bytes, SDL_bool *done)
     if (amount > 0) {
         if (music->loop && (music->play_count != 1) &&
             ((Sint64)music->dec->currentPCMFrame >= music->loop_end)) {
-            amount -= (music->dec->currentPCMFrame - music->loop_end) * sizeof(drflac_int16) * music->channels;
+            amount -= (music->dec->currentPCMFrame - music->loop_end);
             music->loop_flag = SDL_TRUE;
         }
         if (SDL_AudioStreamPut(music->stream, music->buffer, (int)amount * sizeof(drflac_int16) * music->channels) < 0) {
@@ -409,6 +428,8 @@ Mix_MusicInterface Mix_MusicInterface_DRFLAC =
     DRFLAC_LoopEnd,
     DRFLAC_LoopLength,
     DRFLAC_GetMetaTag,
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     NULL,   /* Pause */
     NULL,   /* Resume */
     DRFLAC_Stop,
