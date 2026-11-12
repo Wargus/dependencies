@@ -98,7 +98,7 @@ macro(vendored_png)
       SOURCE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_image/external/libpng"
       PREFIX "${CMAKE_CURRENT_BINARY_DIR}/png/"
       INSTALL_COMMAND cmake -E copy ${PNG_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/png/src/png-build/"
-      CMAKE_ARGS ${STRATAGUS_EXTERNAL_CMAKE_ARGS}
+      CMAKE_ARGS ${STRATAGUS_EXTERNAL_CMAKE_ARGS} -DPNG_TESTS=OFF -DPNG_TOOLS=OFF -DPNG_SHARED=OFF
       CMAKE_CACHE_ARGS -DZLIB_FOUND:STRING=1 -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR} -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARIES}
       -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
     )
@@ -184,13 +184,15 @@ macro(vendored_vorbis)
     set(VORBIS_FOUND)
     set(VORBIS_INCLUDE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_mixer/external/vorbis/include")
     if(MSVC)
+      set(VORBISFILE_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/$<CONFIGURATION>/vorbisfile.lib")
       set(VORBIS_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/$<CONFIGURATION>/vorbis.lib"
         "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/$<CONFIGURATION>/vorbisenc.lib"
-        "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/$<CONFIGURATION>/vorbisfile.lib" ${OGG_LIBRARY})
+        "${VORBISFILE_LIBRARY}" ${OGG_LIBRARY})
     else()
+      set(VORBISFILE_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/libvorbisfile.a")
       set(VORBIS_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/libvorbis.a"
         "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/libvorbisenc.a"
-        "${CMAKE_CURRENT_BINARY_DIR}/vorbis/src/vorbis-build/lib/libvorbisfile.a" ${OGG_LIBRARY})
+        "${VORBISFILE_LIBRARY}" ${OGG_LIBRARY})
     endif()
   endif()
 endmacro()
@@ -219,75 +221,23 @@ macro(vendored_jpeg)
       SOURCE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_image/external/jpeg"
       PREFIX "${CMAKE_CURRENT_BINARY_DIR}/jpeg/"
       INSTALL_COMMAND cmake -E copy ${JPEG_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/jpeg/src/jpeg-build/"
-      CMAKE_ARGS ${STRATAGUS_EXTERNAL_CMAKE_ARGS} -DBUILD_STATIC=ON
+      CMAKE_ARGS ${STRATAGUS_EXTERNAL_CMAKE_ARGS} -DBUILD_SHARED_LIBS=OFF
       CMAKE_CACHE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
     )
 
     set(JPEG_FOUND TRUE)
     set(JPEG_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/jpeg/src/jpeg-build/")
     if(MSVC)
-      set(JPEG_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/jpeg/src/jpeg-build/$<CONFIGURATION>/libjpeg.lib")
+      # The libjpeg that SDL2_image vendors is libjpeg-turbo, whose target is
+      # called jpeg, so the MSVC library is jpeg.lib rather than libjpeg.lib.
+      set(JPEG_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/jpeg/src/jpeg-build/$<CONFIGURATION>/jpeg.lib")
     else()
       set(JPEG_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/jpeg/src/jpeg-build/libjpeg.a")
     endif()
   endif()
 endmacro()
 
-macro(vendored_lcms)
-  include(ExternalProject)
-  if(NOT DEFINED USE_VENDORED_LCMS)
-    set(USE_VENDORED_LCMS true)
 
-    ExternalProject_Add(lcms
-      SOURCE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/lcms"
-      PREFIX "${CMAKE_CURRENT_BINARY_DIR}/lcms/"
-      CMAKE_ARGS ${STRATAGUS_EXTERNAL_CMAKE_ARGS}
-      CMAKE_CACHE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_STATIC_LIBS:BOOL=ON
-      INSTALL_COMMAND ""
-    )
-
-    set(LCMS_FOUND TRUE)
-    set(LCMS_INCLUDE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/lcms/include/")
-    if(MSVC)
-      set(LCMS_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/lcms/src/lcms-build/$<CONFIGURATION>/lcms.lib")
-    else()
-      set(LCMS_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/lcms/src/lcms-build/liblcms.a")
-    endif()
-  endif()
-endmacro()
-
-macro(vendored_mng)
-  include(ExternalProject)
-  if(NOT DEFINED USE_VENDORED_MNG)
-    set(USE_VENDORED_MNG true)
-    vendored_zlib()
-    vendored_jpeg()
-    vendored_lcms()
-
-    ExternalProject_Add(mng
-      SOURCE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/libmng"
-      PREFIX "${CMAKE_CURRENT_BINARY_DIR}/mng/"
-      INSTALL_COMMAND ""
-      CMAKE_ARGS ${STRATAGUS_EXTERNAL_CMAKE_ARGS}
-      CMAKE_CACHE_ARGS -DZLIB_FOUND:STRING=1 -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR} -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARIES}
-      -DJPEG_FOUND:STRING=1 -DJPEG_INCLUDE_DIR:PATH=${JPEG_INCLUDE_DIR} -DJPEG_LIBRARY:FILEPATH=${JPEG_LIBRARIES}
-      -DLCMS_FOUND:STRING=1 -DLCMS_INCLUDE_DIR:PATH=${LCMS_INCLUDE_DIR} -DLCMS_LIBRARY:FILEPATH=${LCMS_LIBRARIES}
-      -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
-      -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_STATIC_LIBS:BOOL=ON
-    )
-
-    add_dependencies(mng zlib jpeg lcms)
-
-    set(MNG_FOUND TRUE)
-    set(MNG_DEFINITIONS -DMNG_NO_INCLUDE_JNG) # see patch
-    set(MNG_INCLUDE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/libmng/")
-    if(MSVC)
-      set(MNG_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/mng/src/mng-build/$<CONFIGURATION>/mng.lib" ${ZLIB_LIBRARIES} ${LCMS_LIBRARIES})
-    else()
-      set(MNG_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/mng/src/mng-build/libmng.a" ${ZLIB_LIBRARIES} ${LCMS_LIBRARIES})
-    endif()
-  endif()
-endmacro()
 
 macro(vendored_theora)
   include(ExternalProject)
@@ -342,7 +292,9 @@ macro(vendored_sdl)
     set(SDL2_FOUND TRUE)
     set(SDL2_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/SDL2/src/SDL2-build/include")
     if(MSVC)
-      set(SDL2_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/SDL2/src/SDL2-build/$<CONFIGURATION>/SDL2$<$<CONFIG:Debug>:d>.lib")
+      # SDL names its static library SDL2-static on MSVC, so it cannot be
+      # mistaken for the import library of the shared build.
+      set(SDL2_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/SDL2/src/SDL2-build/$<CONFIGURATION>/SDL2-static$<$<CONFIG:Debug>:d>.lib")
       set(SDL2main_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/SDL2/src/SDL2-build/$<CONFIGURATION>/SDL2main$<$<CONFIG:Debug>:d>.lib")
     else()
       set(SDL2_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/SDL2/src/SDL2-build/libSDL2.a")
@@ -380,7 +332,7 @@ macro(vendored_sdl_image)
     add_dependencies(SDL2_image SDL2 jpeg png)
 
     set(SDL2_IMAGE_FOUND TRUE)
-    set(SDL2_IMAGE_INCLUDE_DIRS "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_image/")
+    set(SDL2_IMAGE_INCLUDE_DIRS "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_image/include/")
     if(MSVC)
       set(SDL2_IMAGE_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/SDL2_image/src/SDL2_image-build/$<CONFIGURATION>/SDL2_image-static$<$<CONFIG:Debug>:d>.lib" ${JPEG_LIBRARIES})
     else()
@@ -394,30 +346,50 @@ macro(vendored_sdl_mixer)
   if(NOT DEFINED USE_VENDORED_SDL_MIXER)
     set(USE_VENDORED_SDL_MIXER true)
     vendored_sdl()
+    # The engine already builds Ogg and Vorbis from this same tree, and it links them directly for
+    # movie playback, so mixer uses those builds instead of its own copies. Otherwise a binary ends
+    # up with two libvorbis copies and the linker silently picks one of each duplicated symbol.
+    vendored_vorbis()
 
+    # Without SDL2MIXER_VENDORED every enabled format needs its library available, which is why the
+    # ones that are not wanted here are turned off explicitly rather than left to be found:
+    # WavPack has no finder in the SDL2_mixer tree, and FluidSynth becomes selectable (and
+    # defaults to on) only in this mode. Timidity stays, since it is built from sources inside
+    # SDL2_mixer itself.
     ExternalProject_Add(SDL2_mixer
       SOURCE_DIR "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_mixer"
       PREFIX "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/"
       INSTALL_COMMAND ""
-      CMAKE_ARGS ${STRATAGUS_EXTERNAL_CMAKE_ARGS} -DSDL2MIXER_VENDORED=ON -DBUILD_SHARED_LIBS=OFF -DSDL2MIXER_DEPS_SHARED=OFF
+      CMAKE_ARGS ${STRATAGUS_EXTERNAL_CMAKE_ARGS} -DSDL2MIXER_VENDORED=OFF -DBUILD_SHARED_LIBS=OFF -DSDL2MIXER_DEPS_SHARED=OFF
       -DSDL2MIXER_SAMPLES=OFF
       -DSDL2MIXER_FLAC=OFF
       -DSDL2MIXER_OPUS=OFF
       -DSDL2MIXER_MOD=OFF
-      -DSDL2MIXER_MIDI=ON
+      -DSDL2MIXER_MIDI=ON -DSDL2MIXER_MIDI_FLUIDSYNTH=OFF
+      -DSDL2MIXER_WAVPACK=OFF
       -DSDL2MIXER_VORBIS=VORBISFILE -DSDL2MIXER_VORBIS_VORBISFILE_SHARED=OFF
       CMAKE_CACHE_ARGS -DSDL2_FOUND:STRING=1 -DSDL2_INCLUDE_DIR:PATH=${SDL2_INCLUDE_DIR}
       -DSDL2_LIBRARY:FILEPATH=${SDL2_LIBRARY} -DSDL2_MAIN_LIBRARY:FILEPATH=${SDL2main_LIBRARY}
       -DSDL2_DIR:PATH="${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL"
+      -DVorbis_vorbisfile_LIBRARY:FILEPATH=${VORBISFILE_LIBRARY}
+      -DVorbis_vorbisfile_INCLUDE_PATH:PATH=${VORBIS_INCLUDE_DIR}
+      # Vorbisfile pulls in ogg/ogg.h, and the Ogg headers are not next to the Vorbis ones in
+      # this tree, so the Ogg include directory travels along as an extra flag for that one
+      # dependency target.
+      -DVorbis_vorbisfile_COMPILE_OPTIONS:STRING=-I${OGG_INCLUDE_DIR}
       -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
     )
-    add_dependencies(SDL2_mixer SDL2)
+    add_dependencies(SDL2_mixer SDL2 vorbis)
     set(SDL2_MIXER_FOUND TRUE)
     set(SDL2_MIXER_INCLUDE_DIRS "${CMAKE_CURRENT_MACRO_LIST_DIR}/SDL_mixer/include")
     if(MSVC)
-      set(SDL2_MIXER_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/src/SDL2_mixer-build/$<CONFIGURATION>/SDL2_mixer-static$<$<CONFIG:Debug>:d>.lib")
+      set(SDL2_MIXER_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/src/SDL2_mixer-build/$<CONFIGURATION>/SDL2_mixer-static$<$<CONFIG:Debug>:d>.lib"
+        "${VORBISFILE_LIBRARY}")
     else()
-      set(SDL2_MIXER_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/src/SDL2_mixer-build/libSDL2_mixer.a")
+      # SDL2_mixer links Vorbisfile statically, so it has to be on the link line as well. Vorbis
+      # and Ogg itself are already linked by the engine, and have to stay behind this entry.
+      set(SDL2_MIXER_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/SDL2_mixer/src/SDL2_mixer-build/libSDL2_mixer.a"
+        "${VORBISFILE_LIBRARY}")
     endif()
   endif()
 endmacro()
@@ -639,5 +611,27 @@ macro(vendored_guisan)
   target_include_directories(guisan_lib SYSTEM PUBLIC ${CMAKE_CURRENT_MACRO_LIST_DIR}/guisan/include ${SDL2_INCLUDE_DIR})
   if (BUILD_VENDORED_SDL)
     add_dependencies(guisan_lib SDL2)
+  endif()
+endmacro()
+
+macro(vendored_stormlib)
+  if(NOT DEFINED USE_VENDORED_STORMLIB)
+    set(USE_VENDORED_STORMLIB true)
+
+    # StormLib ships a modern CMake build with proper targets, so it is the
+    # only dependency configured with add_subdirectory instead of
+    # ExternalProject.
+    # Bundled mode keeps the vendored build self contained: newer StormLib
+    # releases require system zlib, bzip2, libtomcrypt and libtommath
+    # otherwise, none of which a cross or vendored build has available.
+    set(STORM_USE_BUNDLED_LIBRARIES ON CACHE BOOL "Use bundled dependencies" FORCE)
+    set(STORM_SKIP_INSTALL ON CACHE BOOL "Skip installing files" FORCE)
+    set(STORM_BUILD_TESTS OFF CACHE BOOL "Compile StormLib test application" FORCE)
+    add_subdirectory(${CMAKE_CURRENT_MACRO_LIST_DIR}/stormlib ${CMAKE_CURRENT_BINARY_DIR}/stormlib)
+
+    set(STORMLIB_FOUND true)
+    set(STORMLIB_INCLUDE_DIR ${CMAKE_CURRENT_MACRO_LIST_DIR}/stormlib/src)
+    set(STORMLIB_LIBRARY storm)
+    set(STORMLIB_TARGET StormLib::storm)
   endif()
 endmacro()

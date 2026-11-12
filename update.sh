@@ -5,19 +5,18 @@
 # if a patch file exists with the same name as the repo, it is applied on update
 
 REPOS=(
-    "https://github.com/libsdl-org/SDL.git" "release-2.0.22" "test"
-    "https://github.com/libsdl-org/SDL_image.git" "release-2.6.1" "external/libjxl external/dav1d external/libtiff external/libwebp external/libavif"
-    "https://github.com/libsdl-org/SDL_mixer.git" "release-2.6.1" "external/flac external/mpg123 exernal/opus"
-    "https://github.com/xiph/theora.git" "v1.1.1" ""
-    "https://github.com/LuaDist/bzip2.git" "1.0.5" "manual.ps manual.pdf"
-    "https://github.com/LuaDist/lcms.git" "1.19" "python "
-    "https://github.com/LuaDist/libmng.git" "1.0.10" ""
+    "https://github.com/libsdl-org/SDL.git" "release-2.32.10" "test"
+    "https://github.com/libsdl-org/SDL_image.git" "release-2.8.12" "test external/libjxl external/dav1d external/libtiff external/libwebp external/libavif"
+    "https://github.com/libsdl-org/SDL_mixer.git" "release-2.8.2" "external/flac external/mpg123 external/libxmp external/libgme external/opus external/opusfile external/tremor"
+    "https://github.com/xiph/theora.git" "v1.2.0" ""
+    "https://gitlab.com/bzip2/bzip2.git" "bzip2-1.0.8" ""
     "https://github.com/psi29a/unsf.git" "c5e5a8c" ""
-    "https://github.com/doctest/doctest.git" "v2.4.11" ""
-    "https://github.com/mjansson/mdns" "1.1" ""
-    "https://github.com/oo13/spiritless_po" "e2d9835d061c6f660bcd8afb90ea5b8b981ba4a5" ""
+    "https://github.com/doctest/doctest.git" "v2.5.3" ""
+    "https://github.com/mjansson/mdns" "1.4.3" ""
+    "https://github.com/ladislav-zezula/StormLib.git" "116135c27e8c0dcf8ea0a0c549a6d737ce10fc73" "doc test sources make.bat make-msvc.bat Premake5.lua storm.dll StormLib.sln StormLib_vs08.sln StormLib_vs08.vcproj StormLib_vs08_dll.vcproj StormLib_vs08_test.vcproj StormLib.vcxproj StormLib.vcxproj.filters StormLib_dll.vcxproj StormLib_dll.vcxproj.filters StormLib_test.vcxproj StormLib_test.vcxproj.filters StormLib.xcodeproj Info.plist"
+    "https://github.com/oo13/spiritless_po" "c27f703ebc86bb50be975ac4d6f964cd3ae5a500" ""
     "https://github.com/wheybags/guichan" "46a5f58b577ad398ad51e6015261f690352edfe3" "" # master 0.9.0
-    "https://github.com/kallisti5/guisan" "v1.1.0" ""
+    "https://github.com/kallisti5/guisan" "63138d6499f44e42ac5145295a160e8fd9496856" ""
 )
 
 for i in `seq 0 3 ${#REPOS[@]}`; do

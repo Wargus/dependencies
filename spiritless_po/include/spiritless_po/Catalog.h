@@ -1,7 +1,7 @@
 /** class Catalog
     \file Catalog.h
     \author OOTA, Masato
-    \copyright Copyright © 2019, 2022 OOTA, Masato
+    \copyright Copyright © 2019, 2022, 2024, 2026 OOTA, Masato
     \par License Boost
     \parblock
       This program is distributed under the Boost Software License Version 1.0.
@@ -28,7 +28,7 @@
 #include <vector>
 
 namespace spiritless_po {
-    /** Class Catalog handles a catalog that contains some original and translated messages.
+    /** Class Catalog handles a catalog that contains original and translated messages, which come from PO format streams.
 
         You need only to use this class and not directly to use other classes under include/spiritless_po/.
 
@@ -47,11 +47,12 @@ namespace spiritless_po {
 
         /** Create and Add(begin, end).
             \tparam INP A type of an input iterator.
+            \tparam Sentinel A type of a sentinel.
             \param [in] begin An input iterator pointing to the beginning of the range.
-            \param [in] end An input iterator pointing to the end of the range.
+            \param [in] end A sentinel of the range.
         */
-        template <class INP>
-        explicit Catalog(INP begin, INP end);
+        template <typename INP, typename Sentinel>
+        explicit Catalog(INP &&begin, Sentinel &&end);
 
         /** Create and Add(is).
             \param [in] is An input stream that contains PO entries.
@@ -86,14 +87,15 @@ namespace spiritless_po {
 
         /** Add PO entries.
             \tparam INP A type of an input iterator.
+            \tparam Sentinel A type of a sentinel.
             \param [in] begin An input iterator pointing to the beginning of the range.
-            \param [in] end An input iterator pointing to the end of the range.
+            \param [in] end A sentinel of the range.
             \return true if no error is existed.
             \note This function doesn't change any existed entries, that is a translated text (msgstr) that corresponds to an existed original text (msgid), and also metadata if it's already existed.
             \note An entry isn't added if the msgstr (including msgstr[0]) is empty.
         */
-        template <class INP>
-        bool Add(INP begin, INP end);
+        template <typename INP, typename Sentinel>
+        bool Add(INP &&begin, Sentinel &&end);
 
         /** Add some PO entries.
             \param [in] is An input stream that contains PO entries.
@@ -116,7 +118,7 @@ namespace spiritless_po {
             \return The strings that describe the errors.
             \note The size of the result is 0 if no error is occurred.
         */
-        const std::vector<std::string> &GetError() const;
+        const std::vector<std::string> &GetError() const noexcept;
 
         /** Get the translated text.
             \param [in] msgid The original text.
@@ -151,10 +153,47 @@ namespace spiritless_po {
             const std::string &msgidPlural, unsigned long int n) const;
 
 
+        /** Type of the statistics.
+
+            The statistics of the messages added by Add() and Merge().
+
+            For each entry added by Add() and Merge():
+            1. `totalCount`++
+            2. if msgstr[0] == "" then (* untranslated entry *) continue
+            3. if ID == "" then `metadataCount`++
+            4. if ID already exists in the catalog then `discardedCount`++; continue
+            5. `translatedCount`++
+
+            "ID" means msgid, or msgctxt + CONTEXT_SEPARATOR + msgid if msgctxt != "".
+
+            Add(a normal PO file) to an empty catalog is to report `metadataCount` == 1 and `discardedCount` == 0.
+
+            \note `totalCount` counts the empty ID, unlike "msgfmt --statistics".
+            \note Only first metadata is used when `metadataCount` is more than one.
+            \note The increment of [`translated`] is equal to the increment of [`Catalog::index()`]`.len()`.
+            \attention Merge() reports no untranslated entry, because the catalog doesn't keep the untranslated entry.
+        */
+        struct StatisticsT {
+            std::size_t totalCount; /**< The count of the entry. */
+            std::size_t metadataCount; /**< The count of the metadata entry. */
+            std::size_t translatedCount; /**< The count of the translated entry. */
+            std::size_t discardedCount; /**< The count of the discarded entry. */
+        };
+
+        /** Get the statistics of the messages added by Add() and Merge().
+            \return The statistics.
+         */
+        const StatisticsT &GetStatistics() const noexcept;
+
+        /** Clear the statistics of the messages added by Add() and Merge().
+         */
+        void ClearStatistics() noexcept;
+
+
         /** Type of the string index.
 
-            - stringTable[indexData[msgctxt + msgid].stringTableIndex] == msgstr
-            - stringTable[indexData[msgctxt + msgid].stringTableIndex + n] == msgstr[n]
+            - stringTable[indexData[msgctxt + CONTEXT_SEPARATOR + msgid].stringTableIndex] == msgstr
+            - stringTable[indexData[msgctxt + CONTEXT_SEPARATOR + msgid].stringTableIndex + n] == msgstr[n]
             - The maximum n is totalPlurals - 1.
             \attention This type is public to use for debugging and managing.
         */
@@ -170,6 +209,7 @@ namespace spiritless_po {
         PluralParser::FunctionType pluralFunction;
         std::size_t maxPlurals;
         std::vector<std::string> errors;
+        StatisticsT statistics;
 
     public:
         // Debugging and managing functions
@@ -178,30 +218,30 @@ namespace spiritless_po {
             \return The map of the metadata.
             \attention This function is public to use for debugging and managing.
          */
-        const MetadataParser::MapT &GetMetadata() const;
+        const MetadataParser::MapT &GetMetadata() const noexcept;
 
         /** Get the index map.
             \return The map of the string index.
             \attention This function is public to use for debugging and managing.
             \note The size of the index map is the number of the translatable msgid.
          */
-        const std::unordered_map<std::string, IndexDataT> &GetIndex() const;
+        const std::unordered_map<std::string, IndexDataT> &GetIndex() const noexcept;
 
         /** Get the string table.
             \return The string table.
             \attention This function is public to use for debugging and managing.
          */
-        const std::vector<std::string> &GetStringTable() const;
+        const std::vector<std::string> &GetStringTable() const noexcept;
     };
 
     inline Catalog::Catalog()
         : metadata(), index(), stringTable(), pluralFunction(),
-          maxPlurals(0), errors()
+          maxPlurals(0), errors(), statistics{}
     {
     }
 
-    template <class INP>
-    inline Catalog::Catalog(const INP begin, const INP end)
+    template <typename INP, typename Sentinel>
+    inline Catalog::Catalog(INP &&begin, Sentinel &&end)
         : Catalog()
     {
         Add(begin, end);
@@ -218,41 +258,52 @@ namespace spiritless_po {
         *this = Catalog();
     }
 
-    template <class INP>
-    bool Catalog::Add(const INP begin, const INP end)
+    template <typename INP, typename Sentinel>
+    bool Catalog::Add(INP &&begin, Sentinel &&end)
     {
         std::vector<PoParser::PoEntryT> newEntries(PoParser::GetEntries(begin, end));
+        statistics.totalCount += newEntries.size();
+        const size_t prevIndexSize = index.size();
         for (auto &it : newEntries) {
             if (!it.error.empty()) {
                 errors.push_back(std::move(it.error));
+                statistics.totalCount--;
             } else if (!it.msgstr[0].empty()) {
-                if (!it.msgid.empty()) {
-                    if (index.find(it.msgid) == index.end()) {
-                        IndexDataT idx;
-                        idx.stringTableIndex = stringTable.size();
-                        idx.totalPlurals = it.msgstr.size();
-                        stringTable.insert(stringTable.end(), std::make_move_iterator(it.msgstr.begin()), std::make_move_iterator(it.msgstr.end()));
-                        index.emplace(it.msgid, idx);
-                    }
-                } else if (metadata.empty()) {
-                    metadata = MetadataParser::Parse(it.msgstr[0]);
-                    const auto plural = metadata.find("Plural-Forms");
-                    if (plural != metadata.end()) {
-                        const auto pluralText = plural->second;
+                if (it.msgid.empty()) {
+                    statistics.metadataCount++;
+                    if (metadata.empty()) {
+                        const std::string &metadataString = it.msgstr[0];
+                        metadata = MetadataParser::Parse(metadataString);
+                        unsigned long nplurals = 2;
+                        MetadataParser::GetNPlurals(metadataString, nplurals);
+                        if (nplurals == 0) {
+                            errors.emplace_back("nplurals must be more than 0; ignored.");
+                            nplurals = 1;
+                        }
+                        maxPlurals = nplurals - 1;
+                        std::string plural("n!=1");
+                        MetadataParser::GetPlural(metadataString, plural);
                         try {
-                            const auto pluralData = PluralParser::Parse(pluralText);
-                            if (pluralData.first > 0)
-                                maxPlurals = pluralData.first - 1;
-                            pluralFunction = pluralData.second;
+                            pluralFunction = PluralParser::Parse(plural);
                         } catch (PluralParser::ExpressionError &e) {
-                            const size_t col = std::distance(pluralText.cbegin(), e.Where());
+                            const size_t col = std::distance(plural.cbegin(), e.Where());
                             errors.emplace_back("Column#" + std::to_string(col + 1)
-                                + " in plural expression: " + e.what());
+                                + " in the plural expression \"" + plural + "\": " + e.what());
                         }
                     }
                 }
+                if (index.find(it.msgid) == index.end()) {
+                    IndexDataT idx;
+                    idx.stringTableIndex = stringTable.size();
+                    idx.totalPlurals = it.msgstr.size();
+                    stringTable.insert(stringTable.end(), std::make_move_iterator(it.msgstr.begin()), std::make_move_iterator(it.msgstr.end()));
+                    index.emplace(it.msgid, idx);
+                } else {
+                    statistics.discardedCount++;
+                }
             }
         }
+        statistics.translatedCount += index.size() - prevIndexSize;
         return errors.empty();
     }
 
@@ -265,11 +316,17 @@ namespace spiritless_po {
 
     inline void Catalog::Merge(const Catalog &a)
     {
-        if (metadata.empty()) {
-            metadata = a.metadata;
-            maxPlurals = a.maxPlurals;
-            pluralFunction = a.pluralFunction;
+        if (!a.metadata.empty()) {
+            statistics.metadataCount++;
+            if (metadata.empty()) {
+                metadata = a.metadata;
+                maxPlurals = a.maxPlurals;
+                pluralFunction = a.pluralFunction;
+            }
         }
+
+        statistics.totalCount += a.index.size();
+        const size_t prevIndexSize = index.size();
         for (const auto &src : a.index) {
             if (index.find(src.first) == index.end()) {
                 auto srcIndexData = src.second;
@@ -281,8 +338,12 @@ namespace spiritless_po {
                 idx.totalPlurals = srcTotal;
                 stringTable.insert(stringTable.end(), srcStringIt, srcStringIt + srcTotal);
                 index.emplace(src.first, idx);
+            } else {
+                statistics.discardedCount++;
             }
         }
+        statistics.translatedCount += index.size() - prevIndexSize;
+
         errors.insert(errors.end(), a.errors.begin(), a.errors.end());
     }
 
@@ -291,7 +352,7 @@ namespace spiritless_po {
         errors.clear();
     }
 
-    inline const std::vector<std::string> &Catalog::GetError() const
+    inline const std::vector<std::string> &Catalog::GetError() const noexcept
     {
         return errors;
     }
@@ -312,7 +373,7 @@ namespace spiritless_po {
         const auto &it = index.find(msgid);
         if (it != index.end()) {
             std::size_t nIdx = pluralFunction(n);
-            if (nIdx >= it->second.totalPlurals) {
+            if (nIdx > maxPlurals || nIdx >= it->second.totalPlurals) {
                 nIdx = 0;
             }
             return stringTable[it->second.stringTableIndex + nIdx];
@@ -347,8 +408,9 @@ namespace spiritless_po {
         const auto &it = index.find(s);
         if (it != index.end()) {
             std::size_t nIdx = pluralFunction(n);
-            if (nIdx >= it->second.totalPlurals)
+            if (nIdx > maxPlurals || nIdx >= it->second.totalPlurals) {
                 nIdx = 0;
+            }
             return stringTable[it->second.stringTableIndex + nIdx];
         } else {
             if (n == 1) {
@@ -359,17 +421,27 @@ namespace spiritless_po {
         }
     }
 
-    inline const MetadataParser::MapT &Catalog::GetMetadata() const
+    inline const Catalog::StatisticsT &Catalog::GetStatistics() const noexcept
+    {
+        return statistics;
+    }
+
+    inline void Catalog::ClearStatistics() noexcept
+    {
+        statistics = Catalog::StatisticsT{};
+    }
+
+    inline const MetadataParser::MapT &Catalog::GetMetadata() const noexcept
     {
         return metadata;
     }
 
-    inline const std::unordered_map<std::string, Catalog::IndexDataT> &Catalog::GetIndex() const
+    inline const std::unordered_map<std::string, Catalog::IndexDataT> &Catalog::GetIndex() const noexcept
     {
         return index;
     }
 
-    inline const std::vector<std::string> &Catalog::GetStringTable() const
+    inline const std::vector<std::string> &Catalog::GetStringTable() const noexcept
     {
         return stringTable;
     }

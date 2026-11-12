@@ -21,10 +21,21 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - name: apt-get install catch2
-      run: sudo apt-get -y install catch2
+    - name: Checkout Catch2 v3
+      uses: actions/checkout@v4
+      with:
+          repository: catchorg/Catch2
+          ref: v3.4.0
+          path: Catch2
+
+    - name: Install Catch2 v3
+      run: |
+        mkdir Catch2/build
+        cd Catch2/build
+        cmake .. -DBUILD_TESTING=OFF
+        sudo cmake --build . --target install
 
     - name: test
       run: |
@@ -37,16 +48,16 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - name: Checkout Catch2 v2
-      uses: actions/checkout@v3
+    - name: Checkout Catch2 v3
+      uses: actions/checkout@v4
       with:
           repository: catchorg/Catch2
-          ref: v2.13.10
+          ref: v3.4.0
           path: Catch2
 
-    - name: Install Catch2
+    - name: Install Catch2 v3
       run: |
         mkdir Catch2/build
         cd Catch2/build

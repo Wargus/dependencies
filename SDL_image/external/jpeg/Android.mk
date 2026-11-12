@@ -32,6 +32,8 @@ LOCAL_CFLAGS += -DAVOID_TABLES
 LOCAL_CFLAGS += -O3 -fstrict-aliasing -fprefetch-loop-arrays
 #LOCAL_CFLAGS += -march=armv6j
 
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/android
+
 LOCAL_MODULE:= jpeg
 
 include $(BUILD_STATIC_LIBRARY)

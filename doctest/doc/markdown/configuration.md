@@ -20,6 +20,7 @@ Defining something ```globally``` means for every source file of the binary (exe
 - [**```DOCTEST_CONFIG_NO_COMPARISON_WARNING_SUPPRESSION```**](#doctest_config_no_comparison_warning_suppression)
 - [**```DOCTEST_CONFIG_OPTIONS_PREFIX```**](#doctest_config_options_prefix)
 - [**```DOCTEST_CONFIG_NO_UNPREFIXED_OPTIONS```**](#doctest_config_no_unprefixed_options)
+- [**```DOCTEST_CONFIG_OPTIONS_FILE_PREFIX_SEPARATOR```**](#doctest_config_file_prefix_separator)
 - [**```DOCTEST_CONFIG_NO_TRY_CATCH_IN_ASSERTS```**](#doctest_config_no_try_catch_in_asserts)
 - [**```DOCTEST_CONFIG_NO_EXCEPTIONS```**](#doctest_config_no_exceptions)
 - [**```DOCTEST_CONFIG_NO_EXCEPTIONS_BUT_WITH_ALL_ASSERTS```**](#doctest_config_no_exceptions_but_with_all_asserts)
@@ -150,6 +151,11 @@ This will disable the short versions of the [**command line**](commandline.md) o
 
 This should be defined only in the source file where the library is implemented (it's relevant only there).
 
+### **```DOCTEST_CONFIG_OPTIONS_FILE_PREFIX_SEPARATOR```**
+
+Use the [**command line**](commandline.md) option ```-sfp``` to strip the longest matching in a list of prefixes from all file names in the output.
+The prefixes are passed as a single string that gets split at this separator character, ```':'``` by default.
+
 ### **```DOCTEST_CONFIG_NO_TRY_CATCH_IN_ASSERTS```**
 
 This will remove all ```try``` / ```catch``` sections from:
@@ -200,7 +206,10 @@ This can be defined both globally and in specific source files only.
 This option forces all doctest asserts to copy by value the expressions they are given instead of binding them to const references. This might be useful to avoid ODR-usage of static constants (which might lead to linker errors with g++/clang):
 
 ```c++
-template<typename T> struct type_traits { static const bool value = false; };
+template <typename T>
+struct type_traits {
+    static const bool value = false;
+};
 
 // unless DOCTEST_CONFIG_ASSERTION_PARAMETERS_BY_VALUE is defined the following assertion
 // will lead to a linker error if type_traits<int>::value isn't defined in a translation unit

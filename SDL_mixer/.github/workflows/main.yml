@@ -15,16 +15,15 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - { name: Windows (MSVC+CMake),         os: windows-2019, shell: sh,   cmake: '-DSDL2MIXER_VENDORED=ON -GNinja', msvc: 1, shared: 1, static: 0 }
+        - { name: Windows (MSVC+CMake),         os: windows-latest, shell: sh,   cmake: '-DSDL2MIXER_VENDORED=ON -GNinja', msvc: 1, shared: 1, static: 0 }
         - { name: Windows (mingw32+autotools),  os: windows-latest, shell: 'msys2 {0}', msystem: mingw32, msys-env: mingw-w64-i686, shared: 1, static: 1 }
         - { name: Windows (mingw64+CMake),      os: windows-latest, shell: 'msys2 {0}', msystem: mingw64, msys-env: mingw-w64-x86_64, shared: 1, static: 0,
             cmake: '-DSDL2MIXER_VENDORED=OFF -G "Ninja Multi-Config"' }
-        - { name: Linux (autotools),            os: ubuntu-20.04,   shell: sh, shared: 1, static: 1}
-        - { name: Linux (CMake),                os: ubuntu-20.04,   shell: sh, cmake: '-DSDL2MIXER_VENDORED=ON -GNinja', shared: 1, static: 0 }
-        - { name: 'Linux (CMake, static)',      os: ubuntu-20.04,   shell: sh, cmake: '-DSDL2MIXER_VENDORED=ON -DBUILD_SHARED_LIBS=OFF -GNinja', shared: 0, static: 1 }
-        - { name: Macos (autotools),            os: macos-latest,   shell: sh, shared: 1, static: 1 }
-        - { name: Macos (CMake),                os: macos-latest,   shell: sh, cmake: '-DSDL2MIXER_VENDORED=ON -GNinja', shared: 1, static: 0 }
-
+        - { name: Linux (autotools),            os: ubuntu-latest, shell: sh, shared: 1, static: 1}
+        - { name: Linux (CMake),                os: ubuntu-latest, shell: sh, cmake: '-DSDL2MIXER_VENDORED=ON -GNinja', shared: 1, static: 0 }
+        - { name: 'Linux (CMake, static)',      os: ubuntu-latest, shell: sh, cmake: '-DSDL2MIXER_VENDORED=ON -DBUILD_SHARED_LIBS=OFF -GNinja', shared: 0, static: 1 }
+        - { name: Macos (autotools),            os: macos-latest,  shell: sh, shared: 1, static: 1 }
+        - { name: Macos (CMake),                os: macos-latest,  shell: sh, cmake: '-DSDL2MIXER_VENDORED=ON -GNinja', shared: 1, static: 0 }
 
     steps:
     - name: Set up MSYS2
@@ -37,12 +36,14 @@ jobs:
           ${{ matrix.platform.msys-env }}-autotools
           ${{ matrix.platform.msys-env }}-cmake
           ${{ matrix.platform.msys-env }}-gcc
-          ${{ matrix.platform.msys-env }}-mpg123
           ${{ matrix.platform.msys-env }}-flac
-          ${{ matrix.platform.msys-env }}-libmodplug
           ${{ matrix.platform.msys-env }}-fluidsynth
+          ${{ matrix.platform.msys-env }}-libgme
           ${{ matrix.platform.msys-env }}-libvorbis
+          ${{ matrix.platform.msys-env }}-libxmp
+          ${{ matrix.platform.msys-env }}-mpg123
           ${{ matrix.platform.msys-env }}-opusfile
+          ${{ matrix.platform.msys-env }}-wavpack
           ${{ matrix.platform.msys-env }}-ninja
           ${{ matrix.platform.msys-env }}-pkg-config
     - name: Setup Macos dependencies
@@ -53,14 +54,14 @@ jobs:
           autoconf \
           automake \
           libtool \
-          ninja \
-          pkg-config \
-          mpg123 \
           flac \
-          libmodplug \
           fluidsynth \
+          game-music-emu \
           libvorbis \
+          libxmp \
+          mpg123 \
           opusfile \
+          wavpack \
           ${NULL+}
     - name: Setup Linux dependencies
       if: runner.os == 'Linux'
@@ -71,16 +72,17 @@ jobs:
           automake \
           cmake \
           libsdl2-dev \
-          libmpg123-dev \
           libflac-dev \
-          libmodplug-dev \
           libfluidsynth-dev \
-          libvorbis-dev \
+          libgme-dev \
+          libmpg123-dev \
           libopusfile-dev \
-          ninja-build \
+          libvorbis-dev \
+          libxmp-dev \
+          libwavpack-dev \
           pkg-config \
           ${NULL+}
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -92,15 +94,9 @@ jobs:
         .github/fetch_sdl_vc.ps1
         echo "SDL2_DIR=$Env:GITHUB_WORKSPACE/SDL2-devel-VC" >> $Env:GITHUB_ENV
         echo "::endgroup::"
-        echo "::group::Downloading yasm"
-        .github/fetch_yasm.ps1
-        echo "${{ github.workspace }}" >> $Env:GITHUB_PATH
-        echo "::endgroup::"
-    - name: Setup Ninja for MSVC
-      if: "matrix.platform.msvc"
-      uses: ashutoshvarma/setup-ninja@master
-      with:
-        version: 1.10.2
+    - name: Set up ninja
+      uses: ./.github/actions/setup-ninja
+      if: ${{ !contains(matrix.platform.shell, 'msys2') }}
     - uses: ilammy/msvc-dev-cmd@v1
       if: "matrix.platform.msvc"
       with:
@@ -109,13 +105,12 @@ jobs:
     - name: Check that versioning is consistent
       # We only need to run this once: arbitrarily use the Linux/CMake build
       if: "runner.os == 'Linux' && matrix.platform.cmake"
-      run: ./test-versioning.sh
+      run: ./build-scripts/test-versioning.sh
 
-    - name: Setup (CMake)
-      if: ${{ matrix.platform.cmake && !matrix.platform.msystem && !matrix.platform.msvc }}
-      uses: jwlawson/actions-setup-cmake@v1.12
-      with:
-        cmake-version: '3.16'
+    - name: Set up yasm for mpg123 (MSVC only)
+      uses: ./.github/actions/setup-yasm
+      if: ${{ matrix.platform.msvc }}
+
     - name: Configure (CMake)
       if: "matrix.platform.cmake"
       run: |
@@ -124,10 +119,11 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DSDL2MIXER_FLAC=ON \
           -DSDL2MIXER_FLAC_LIBFLAC=ON \
-          -DSDL2MIXER_VORBIS=VORBISFILE \
-          -DSDL2MIXER_OPUS=ON \
+          -DSDL2MIXER_GME=ON \
+          -DSDL2MIXER_MOD_XMP=ON \
           -DSDL2MIXER_MP3_MPG123=ON \
-          -DSDL2MIXER_MOD_MODPLUG=ON \
+          -DSDL2MIXER_OPUS=ON \
+          -DSDL2MIXER_VORBIS=VORBISFILE \
           -DCMAKE_INSTALL_PREFIX=prefix_cmake \
           ${NULL+}
         

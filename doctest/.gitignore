@@ -37,7 +37,6 @@ build-mingw/
 *vscode*
 .idea/
 cmake-build-*/
-bazel-*
 
 # MacOS/Xcode
 *.DS_Store
@@ -54,6 +53,7 @@ XCBuildData/
 *.exp
 *.ilk
 *.pdb
+.vs/
 
 # Ninja
 build.ninja
@@ -73,3 +73,8 @@ CTestCostData.txt
 LastTest.log
 LastTestsFailed.log
 temp
+
+# Bazel
+bazel-*
+user.bazelrc
+*.bazel.lock

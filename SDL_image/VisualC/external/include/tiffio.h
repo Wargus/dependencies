@@ -261,7 +261,7 @@ typedef struct {
 #define LOGLUV_PUBLIC 1
 #endif
 
-#if defined(__GNUC__) || defined(__attribute__)
+#if defined(__GNUC__) || defined(__clang__) || defined(__attribute__)
 #  define TIFF_ATTRIBUTE(x)    __attribute__(x)
 #else
 #  define TIFF_ATTRIBUTE(x) /*nothing*/
@@ -326,7 +326,6 @@ extern TIFFDataType TIFFFieldDataType(const TIFFField*);
 extern int TIFFFieldPassCount(const TIFFField*);
 extern int TIFFFieldReadCount(const TIFFField*);
 extern int TIFFFieldWriteCount(const TIFFField*);
-extern int TIFFFieldIsAnonymous(const TIFFField *);
 
 typedef int (*TIFFVSetMethod)(TIFF*, uint32, va_list);
 typedef int (*TIFFVGetMethod)(TIFF*, uint32, va_list);

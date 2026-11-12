@@ -33,7 +33,11 @@
 #define TIFF_UINT8_T unsigned char
 
 /* Signed size type */
+#if defined _WIN64
+#define TIFF_SSIZE_T signed long long
+#else
 #define TIFF_SSIZE_T signed int
+#endif
 
 /* Pointer difference type */
 #define TIFF_PTRDIFF_T ptrdiff_t
@@ -102,7 +106,7 @@
 
 /* Pick up YCbCr subsampling info from the JPEG data stream to support files
    lacking the tag (default enabled). */
-#define CHECK_JPEG_YCBCR_SUBSAMPLING 1
+/* #undef CHECK_JPEG_YCBCR_SUBSAMPLING */
 
 /* Support MS MDI magic number files as TIFF */
 #define MDI_SUPPORT 1

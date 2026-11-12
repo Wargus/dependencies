@@ -6,53 +6,40 @@
 namespace WidgetsExample
 {
 
-    /*
-     * List boxes and dropdowns needs an instance of a listmodel
-     * to know what elements they have.
-     */
-    class DemoListModel : public gcn::ListModel
-    {
-    public:
-        int getNumberOfElements() override { return 5; }
-
-        std::string getElementAt(int i) override
-        {
-            switch (i)
-            {
-                case 0: return std::string("zero");
-                case 1: return std::string("one");
-                case 2: return std::string("two");
-                case 3: return std::string("three");
-                case 4: return std::string("four");
-                default: // Just to keep warnings away
-                    return std::string("");
-            }
-        }
-    };
-
     class MainContainer : public gcn::ActionListener
     {
     public:
-        MainContainer(gcn::Gui& gui, int width, int height)
+        MainContainer(gcn::Gui& gui, int width, int height) :
+            demoListModel{{"zero", "one", "two", "three", "four"}}
         {
-            // Load the image font.
-            font = std::make_unique<gcn::ImageFont>(
-                "fixedfont.bmp", " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
-            // The global font is static and must be set.
-            gcn::Widget::setGlobalFont(font.get());
+#if USE_SDL2_TTF
+            TTF_Init();
 
-            top = std::make_unique < gcn::Container>();
+            trueFont = std::make_unique<gcn::SDLTrueTypeFont>("dactylographe.ttf", 12);
+#endif
+            // Load the image font.
+            imageFont = std::make_unique<gcn::ImageFont>(
+                "fixedfont.bmp", " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+
+            // The global font is static and must be set.
+#if USE_SDL2_TTF
+            gcn::Widget::setGlobalFont(trueFont.get());
+#else
+            gcn::Widget::setGlobalFont(imageFont.get());
+#endif
+            top = std::make_unique<gcn::Container>();
             // Set the dimension of the top container to match the screen.
             top->setDimension(gcn::Rectangle(0, 0, width, height));
             // Set the top container
             gui.setTop(top.get());
+
+            guisanLogoImage.reset(gcn::Image::load("guisan-logo.png"));
             /*
              * Create all the widgets
              */
             label = std::make_unique<gcn::Label>("Label");
 
-            image.reset(gcn::Image::load("guisan.png"));
-            icon = std::make_unique<gcn::Icon>(image.get());
+            icon = std::make_unique<gcn::Icon>("guisan.png");
 
             button = std::make_unique<gcn::Button>("Button");
 
@@ -79,6 +66,9 @@ namespace WidgetsExample
 
             textField = std::make_unique<gcn::TextField>("Text field");
 
+            passwordField = std::make_unique<gcn::TextField>("password");
+            passwordField->setMaskingChar('*');
+
             textBox = std::make_unique<gcn::TextBox>("Lorem ipsum dolor sit amet consectetur\n"
                                                      "adipiscing elit Integer vitae ultrices\n"
                                                      "eros Curabitur malesuada dolor imperdieat\n"
@@ -101,7 +91,8 @@ namespace WidgetsExample
             checkBox1 = std::make_unique<gcn::CheckBox>("Checkbox 1");
             checkBox2 = std::make_unique<gcn::CheckBox>("Checkbox 2");
 
-            toggleButton = std::make_unique<gcn::ToggleButton>("Toggle button");
+            toggleButton = std::make_unique<gcn::ToggleButton>("Toggle font");
+            toggleButton->addActionListener(this);
 
             radioButton1 = std::make_unique<gcn::RadioButton>("Radio Button 1", "radiogroup", true);
             radioButton2 = std::make_unique<gcn::RadioButton>("Radio Button 2", "radiogroup");
@@ -125,8 +116,7 @@ namespace WidgetsExample
             messageBox->setFrameSize(1);
             messageBox->addActionListener(this);
 
-            guisanLogoImage.reset(gcn::Image::load("guisan-logo.png"));
-            guisanLogoIcon = std::make_unique<gcn::Icon>(guisanLogoImage.get());
+            guisanLogoIcon = std::make_unique<gcn::Icon>(guisanLogoImage);
             window->add(guisanLogoIcon.get());
             window->resizeToContent();
 
@@ -150,6 +140,7 @@ namespace WidgetsExample
             top->add(imageButton.get(), 10, 290);
             top->add(imageTextButton.get(), 10, 380);
             top->add(textField.get(), 375, 10);
+            top->add(passwordField.get(), 375, 30);
             top->add(textBoxScrollArea.get(), 290, 50);
             top->add(inputBox.get(), 270, 180);
             top->add(listBox.get(), 290, 200);
@@ -197,6 +188,19 @@ namespace WidgetsExample
                     label->adjustSize();
                 }
             }
+            else if (actionEvent.getSource() == toggleButton.get())
+            {
+                if (gcn::Widget::getGlobalFont() == imageFont.get())
+                {
+#if USE_SDL2_TTF
+                    gcn::Widget::setGlobalFont(trueFont.get());
+#endif
+                }
+                else
+                {
+                    gcn::Widget::setGlobalFont(imageFont.get());
+                }
+            }
             else if (actionEvent.getSource() == messageBox.get())
             {
                 switch (messageBox->getClickedButton())
@@ -214,13 +218,15 @@ namespace WidgetsExample
         }
 
     private:
-        std::unique_ptr<gcn::ImageFont> font; // A font
-
+        std::unique_ptr<gcn::Font> imageFont; // A font
+#if USE_SDL2_TTF
+        std::unique_ptr<gcn::Font> trueFont; // A font
+#endif
         /*
          * All of the widgets
          */
         std::unique_ptr<gcn::Container> top; // A top container
-        DemoListModel demoListModel;
+        gcn::StringListModel demoListModel;
         std::unique_ptr<gcn::Label> label; // A label
         std::unique_ptr<gcn::Icon> icon; // An icon (image)
         std::unique_ptr<gcn::Button> button; // A button
@@ -228,6 +234,7 @@ namespace WidgetsExample
         std::unique_ptr<gcn::ImageTextButton> imageTextButton; // An image text button
         std::unique_ptr<gcn::InputBox> inputBox; // An input box
         std::unique_ptr<gcn::TextField> textField; // One-line text field
+        std::unique_ptr<gcn::TextField> passwordField; // One-line password field
         std::unique_ptr<gcn::TextBox> textBox; // Multi-line text box
         std::unique_ptr<gcn::ScrollArea> textBoxScrollArea; // Scroll area for the text box
         std::unique_ptr<gcn::ListBox> listBox; // A list box
@@ -239,11 +246,10 @@ namespace WidgetsExample
         std::unique_ptr<gcn::RadioButton> radioButton3;
         std::unique_ptr<gcn::ToggleButton> toggleButton;
         std::unique_ptr<gcn::Slider> slider; // A slider
-        std::unique_ptr<gcn::Image> image; // An image for the icon
         std::unique_ptr<gcn::Window> window;
         std::unique_ptr<gcn::MessageBox> messageBox;
         std::unique_ptr<gcn::ProgressBar> progress;
-        std::unique_ptr<gcn::Image> guisanLogoImage;
+        std::shared_ptr<gcn::Image> guisanLogoImage;
         std::unique_ptr<gcn::Icon> guisanLogoIcon;
         std::unique_ptr<gcn::ScrollArea> nestedScrollArea;
         std::unique_ptr<gcn::Container> nestedContainer;

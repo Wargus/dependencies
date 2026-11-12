@@ -1,0 +1,39 @@
+name: Code Generation
+
+on:
+  push:
+    branches: [dev, master]
+    paths-ignore:
+      - "doc/**"
+      - "LICENSE.txt"
+      - "README.md"
+
+  pull_request:
+    paths-ignore:
+      - ".github/ISSUE_TEMPLATE/**"
+      - "doc/**"
+      - "LICENSE.txt"
+      - "README.md"
+
+concurrency:
+  group: ${{ github.workflow }}|${{ github.ref_name }}|code-generation
+  cancel-in-progress: true
+
+jobs:
+  check-generated-header:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Generate Single-Header File
+        run: python scripts/assemble.py
+
+      - name: Check Diff
+        run: |
+          if ! git diff --exit-code doctest/doctest.h; then
+            echo "::error file=doctest/doctest.h title=doctest.h out-of-date::doctest.h differs when regenerated"
+            echo "Ensure you have only changed files in the doctest/parts/* directory,"
+            echo "then run scripts/assemble.py to assemble the single-header file for doctest"
+            exit 1
+          fi

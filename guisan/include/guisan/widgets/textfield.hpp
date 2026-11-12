@@ -60,14 +60,14 @@
 #include "guisan/keylistener.hpp"
 #include "guisan/mouselistener.hpp"
 #include "guisan/platform.hpp"
+#include "guisan/text.hpp"
 #include "guisan/widget.hpp"
 
+#include <memory>
 #include <string>
 
 namespace gcn
 {
-    class Text;
-
     /**
      * An implementation of a text field where a user can enter a line of text.
      */
@@ -88,7 +88,12 @@ namespace gcn
          *
          * @param text The default text of the text field.
          */
-        TextField(const std::string& text);
+        explicit TextField(const std::string& text);
+
+        /**
+         * Destructor.
+         */
+        ~TextField() override = default;
 
         /**
          * Sets the text of the text field.
@@ -151,6 +156,20 @@ namespace gcn
          */
         unsigned int getCaretPosition() const;
 
+        /**
+         * Set the masking character to hide the password, or '\0'
+         *
+         * @param passwordMasking the masking character
+         */
+        void setMaskingChar(char passwordMasking);
+
+        /**
+         * Get the masking character
+         *
+         * @return the masking character if any or '\0'
+         */
+        char getMaskingChar() const;
+
         // Inherited from Widget
 
         void draw(Graphics* graphics) override;
@@ -190,7 +209,7 @@ namespace gcn
         /**
          * Holds the text of the text field.
          */
-        Text* mText = nullptr;
+        std::unique_ptr<Text> mText;
 
         /**
          * Holds the amount scrolled in x. If a user types more characters than
@@ -198,6 +217,11 @@ namespace gcn
          * text needs to scroll in order to show the last type character.
          */
         int mXScroll = 0;
+
+        /**
+         * Replacement character for password field, or '\0'.
+         */
+        char mPasswordMasking = '\0';
     };
 }
 

@@ -68,7 +68,7 @@
 
 namespace gcn
 {
-    TextField::TextField() : mText(new Text())
+    TextField::TextField() : mText(std::make_unique<Text>())
     {
         setFocusable(true);
 
@@ -78,7 +78,7 @@ namespace gcn
         adjustHeight();
     }
 
-    TextField::TextField(const std::string& text) : mText(new Text(text))
+    TextField::TextField(const std::string& text) : mText(std::make_unique<Text>(text))
     {
         setFocusable(true);
 
@@ -95,6 +95,11 @@ namespace gcn
 
     void TextField::draw(Graphics* graphics)
     {
+        // Switch replacement text before drawing it to possibly hide it
+        const std::string realText(mText->getRow(0));
+        const std::string encodedText = mPasswordMasking ? std::string(realText.size(), mPasswordMasking) : realText;
+        mText->setRow(0, encodedText);
+
         Color faceColor = getBaseColor();
         Color highlightColor, shadowColor;
         int alpha = getBaseColor().a;
@@ -137,11 +142,11 @@ namespace gcn
 
         graphics->setFont(getFont());
 
-        const Rectangle& dim = mText->getCaretDimension(getFont());
         if (mText->getNumberOfRows() != 0) 
             graphics->drawText(mText->getRow(0), 1 - mXScroll, 2, Graphics::Left, isEnabled());
 
         graphics->popClipArea();
+        mText->setRow(0, realText);
     }
 
     void TextField::drawCaret(Graphics* graphics, int x)
@@ -284,5 +289,15 @@ namespace gcn
     void TextField::fontChanged()
     {
         fixScroll();
+    }
+
+    void TextField::setMaskingChar(char passwordMasking)
+    {
+        mPasswordMasking = passwordMasking;
+    }
+
+    char TextField::getMaskingChar() const
+    {
+        return mPasswordMasking;
     }
 }

@@ -1,6 +1,6 @@
 /* sample/dump.cpp
 
-Copyright (c) 2022 OOTA, Masato
+Copyright (c) 2022, 2024 OOTA, Masato
 
 This is published under CC0 1.0.
 For more information, see CC0 1.0 Universal (CC0 1.0) at <https://creativecommons.org/publicdomain/zero/1.0/legalcode>.
@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     }
 
     spiritless_po::Catalog catalog;
-#if 0
+#if 1
     /* Add version */
     for (size_t i = 0; i < static_cast<size_t>(argc) - 1; i++) {
         ifstream f(argv[i + 1]);
@@ -70,5 +70,11 @@ int main(int argc, char *argv[])
     for (const auto &s : catalog.GetError()) {
         cerr << s << endl;
     }
+    cout << "Statistics:" << endl;
+    auto statistics = catalog.GetStatistics();
+    cout << "  Total msgid: " << statistics.totalCount << endl;
+    cout << "  Metadata: " << statistics.metadataCount << endl;
+    cout << "  Translated: " << statistics.translatedCount << endl;
+    cout << "  Discarded: " << statistics.discardedCount << endl;
     return 0;
 }

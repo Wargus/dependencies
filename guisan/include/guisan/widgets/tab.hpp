@@ -57,16 +57,16 @@
 #ifndef GCN_TAB_HPP
 #define GCN_TAB_HPP
 
-#include <map>
-#include <string>
-
 #include "guisan/mouselistener.hpp"
 #include "guisan/platform.hpp"
+#include "guisan/widgets/label.hpp"
 #include "guisan/widget.hpp"
+
+#include <memory>
+#include <string>
 
 namespace gcn
 {
-    class Label;
     class TabbedArea;
 
     /**
@@ -89,7 +89,7 @@ namespace gcn
         /**
          * Destructor.
          */
-        ~Tab() override;
+        ~Tab() override = default;
 
         /**
          * Adjusts the size of the tab to fit the caption. If this tab was
@@ -144,7 +144,7 @@ namespace gcn
         /**
          * Holds the label of the tab.
          */
-        Label* mLabel = nullptr;
+        std::unique_ptr<Label> mLabel;
 
         /**
          * Holds the tabbed area the tab is a part of.

@@ -1,6 +1,6 @@
 /* sample/load.cpp
 
-Copyright (c) 2019 OOTA, Masato
+Copyright (c) 2019, 2024 OOTA, Masato
 
 This is published under CC0 1.0.
 For more information, see CC0 1.0 Universal (CC0 1.0) at <https://creativecommons.org/publicdomain/zero/1.0/legalcode>.
@@ -43,7 +43,11 @@ int main(int argc, char *argv[])
              << ": " << catalog.ngettext("Bean", "Beans", i) << endl;
     }
 
-    auto index = catalog.GetIndex();
-    cout << "Number of msgid: " << index.size() << endl;
+    cout << "Statistics:" << endl;
+    auto statistics = catalog.GetStatistics();
+    cout << "  Total msgid: " << statistics.totalCount << endl;
+    cout << "  Metadata: " << statistics.metadataCount << endl;
+    cout << "  Translated: " << statistics.translatedCount << endl;
+    cout << "  Discarded: " << statistics.discardedCount << endl;
     return 0;
 }

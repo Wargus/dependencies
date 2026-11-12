@@ -1,6 +1,6 @@
 /*
   SDL_mixer:  An audio mixer library based on the SDL library
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -26,6 +26,7 @@
 #include "SDL_loadso.h"
 
 #include "music_opus.h"
+#include "remap_channels.h"
 #include "utils.h"
 
 #ifdef OPUSFILE_HEADER
@@ -60,6 +61,10 @@ static opus_loader opus;
     if (opus.FUNC == NULL) { Mix_SetError("Missing opus.framework"); return -1; }
 #endif
 
+#ifdef __APPLE__
+    /* Need to turn off optimizations so weak framework load check works */
+    __attribute__ ((optnone))
+#endif
 static int OPUS_Load(void)
 {
     if (opus.loaded == 0) {
@@ -165,22 +170,17 @@ static void OPUS_Delete(void*);
 static int OPUS_UpdateSection(OPUS_music *music)
 {
     const OpusHead *op_info;
+    int new_buffer_size;
 
     op_info = opus.op_head(music->of, -1);
     if (!op_info) {
-        Mix_SetError("op_head returned NULL");
-        return -1;
+        return Mix_SetError("op_head returned NULL");
     }
 
     if (music->op_info && op_info->channel_count == music->op_info->channel_count) {
         return 0;
     }
     music->op_info = op_info;
-
-    if (music->buffer) {
-        SDL_free(music->buffer);
-        music->buffer = NULL;
-    }
 
     if (music->stream) {
         SDL_FreeAudioStream(music->stream);
@@ -190,13 +190,25 @@ static int OPUS_UpdateSection(OPUS_music *music)
     music->stream = SDL_NewAudioStream(AUDIO_S16SYS, (Uint8)op_info->channel_count, 48000,
                                        music_spec.format, music_spec.channels, music_spec.freq);
     if (!music->stream) {
+        SDL_free(music->buffer);
+        music->buffer      = NULL;
+        music->buffer_size = 0;
         return -1;
     }
 
-    music->buffer_size = (int)music_spec.samples * (int)sizeof(opus_int16) * op_info->channel_count;
-    music->buffer = (char *)SDL_malloc((size_t)music->buffer_size);
-    if (!music->buffer) {
-        return -1;
+    new_buffer_size = (int)music_spec.samples * (int)sizeof(opus_int16) * op_info->channel_count;
+
+    /* Note: never shrink the buffer, we just decoded data in there. */
+    if (new_buffer_size > music->buffer_size) {
+        char *new_buffer = (char *)SDL_realloc(music->buffer, (size_t)new_buffer_size);
+        if (!new_buffer) {
+            SDL_free(music->buffer);
+            music->buffer      = NULL;
+            music->buffer_size = 0;
+            return -1;
+        }
+        music->buffer      = new_buffer;
+        music->buffer_size = new_buffer_size;
     }
     return 0;
 }
@@ -228,7 +240,7 @@ static void *OPUS_CreateFromRW(SDL_RWops *src, int freesrc)
     music->of = opus.op_open_callbacks(src, &callbacks, NULL, 0, &err);
     if (music->of == NULL) {
     /*  set_op_error("op_open_callbacks", err);*/
-        SDL_SetError("Not an Opus audio stream");
+        Mix_SetError("Not an Opus audio stream");
         SDL_free(music);
         return NULL;
     }
@@ -365,8 +377,7 @@ static int OPUS_GetSome(void *context, void *data, int bytes, SDL_bool *done)
     section = music->section;
     samples = opus.op_read(music->of, (opus_int16 *)music->buffer, music->buffer_size / (int)sizeof(opus_int16), &section);
     if (samples < 0) {
-        set_op_error("op_read", samples);
-        return -1;
+        return set_op_error("op_read", samples);
     }
 
     if (section != music->section) {
@@ -376,13 +387,18 @@ static int OPUS_GetSome(void *context, void *data, int bytes, SDL_bool *done)
         }
     }
 
+    if (music->op_info->mapping_family == 1) {
+        remap_channels_vorbis_s16((Sint16 *)music->buffer,
+                                  samples * music->op_info->channel_count,
+                                  music->op_info->channel_count);
+    }
+
     pcmPos = opus.op_pcm_tell(music->of);
     if (music->loop && (music->play_count != 1) && (pcmPos >= music->loop_end)) {
         samples -= (int)((pcmPos - music->loop_end) * music->op_info->channel_count) * (int)sizeof(Sint16);
         result = opus.op_pcm_seek(music->of, music->loop_start);
         if (result < 0) {
-            set_op_error("ov_pcm_seek", result);
-            return -1;
+            return set_op_error("ov_pcm_seek", result);
         } else {
             int play_count = -1;
             if (music->play_count > 0) {
@@ -476,6 +492,7 @@ static double OPUS_LoopLength(void *music_p)
 static void OPUS_Delete(void *context)
 {
     OPUS_music *music = (OPUS_music *)context;
+    meta_tags_clear(&music->tags);
     opus.op_free(music->of);
     if (music->stream) {
         SDL_FreeAudioStream(music->stream);
@@ -514,6 +531,8 @@ Mix_MusicInterface Mix_MusicInterface_Opus =
     OPUS_LoopEnd,
     OPUS_LoopLength,
     OPUS_GetMetaTag,
+    NULL,   /* GetNumTracks */
+    NULL,   /* StartTrack */
     NULL,   /* Pause */
     NULL,   /* Resume */
     OPUS_Stop,

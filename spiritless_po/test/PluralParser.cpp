@@ -1,10 +1,14 @@
 /*
-  Copyright © 2022 OOTA, Masato
+  Copyright © 2022, 2024 OOTA, Masato
             © 2013 Translate.
   License: CC-BY-SA-3.0
   See https://creativecommons.org/licenses/by-sa/3.0/legalcode for license details.
 */
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_template_test_macros.hpp>
+#include <catch2/benchmark/catch_benchmark.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
 #include <random>
 #include <string>
 #include <vector>
@@ -135,7 +139,7 @@ using NumT = PluralParser::NumT;
 
 #define STR_IMPL(X) #X
 #define STR(X) STR_IMPL(X)
-#define PLURAL_FORMS(X) "Plural-Forms: nplurals=1; plural=" STR(X) ";\n"
+#define PLURAL_FORMS(X) STR(X)
 
 namespace {
     const size_t TOTAL_PLURAL_EXPRESSION = 22;
@@ -213,6 +217,7 @@ namespace {
     };
 
 
+#ifdef ENABLE_BENCHMARK
     // This function returns a random integer vector.
     vector<unsigned long int> gen_int_vector(const size_t s)
     {
@@ -224,20 +229,51 @@ namespace {
         }
         return v;
     }
+#endif // ENABLE_BENCHMARK
 }
 
 TEMPLATE_TEST_CASE( "Default Constructor of PluralFunction", "[PluralFunction]", PluralParser, ENABLE_ASSERT::PluralParser, INTERPRETER::PluralParser ) {
     PluralParser::FunctionType plural_function;
-    REQUIRE( plural_function(0) == 0 );
+    REQUIRE( plural_function(0) == 1 );
     REQUIRE( plural_function(1) == 0 );
-    REQUIRE( plural_function(99) == 0 );
+    REQUIRE( plural_function(99) == 1 );
+}
+
+TEMPLATE_TEST_CASE( "Operators of PluralFunction", "[PluralFunction]", PluralParser, ENABLE_ASSERT::PluralParser, INTERPRETER::PluralParser ) {
+    SECTION( "Numeric operators priority and association" ) {
+        auto it = PluralParser::Parse("1 + 2 * 3 + (4 + 5) * 6 / 5 % 3 - 7 + 8");
+        REQUIRE( it(0) == 1 + 2 * 3 + (4 + 5) * 6 / 5 % 3 - 7 + 8 );
+    };
+    SECTION( "Logical operators priority" ) {
+        auto it1 = PluralParser::Parse("1 || 0 && 0");
+        REQUIRE( it1(0) == 1 );
+
+        auto it2 = PluralParser::Parse("0 && 0 || 1");
+        REQUIRE( it2(0) == 1 );
+    };
+    SECTION( "Complare operators association" ) {
+        auto it = PluralParser::Parse("5 > 4 >= 2");
+        REQUIRE( it(0) == 0 );
+    };
+    SECTION( "Conditional operator association" ) {
+        auto it = PluralParser::Parse("n == 1 ? 0 : n == 2 ? 1 : n == 3 ? 2 : n == 4 ? 3 : 4");
+        REQUIRE( it(0) == 4 );
+        REQUIRE( it(1) == 0 );
+        REQUIRE( it(2) == 1 );
+        REQUIRE( it(3) == 2 );
+        REQUIRE( it(4) == 3 );
+    };
+    SECTION( "Operators priority" ) {
+        auto it = PluralParser::Parse("1 + 2 && 0 + 0 >= 1 ? 2 : 3");
+        REQUIRE( it(0) == 3 );
+    };
 }
 
 TEMPLATE_TEST_CASE( "Equality in PluralFunction", "[PluralFunction]",  PluralParser, ENABLE_ASSERT::PluralParser, INTERPRETER::PluralParser, DEBUG_32BIT_NUM::PluralParser, DEBUG_32BIT_IF::PluralParser, DEBUG_32BIT_ELSE::PluralParser, DEBUG_32BIT_IF_ELSE::PluralParser, DEBUG_32BIT_ALL::PluralParser ) {
     vector<typename TestType::FunctionType> test_funcs;
     for (auto &info : plural_forms) {
         auto it = TestType::Parse(info);
-        test_funcs.push_back(it.second);
+        test_funcs.push_back(it);
     }
 
     auto i = GENERATE(range(0, 1000));
@@ -355,12 +391,14 @@ TEMPLATE_TEST_CASE( "Equality in PluralFunction", "[PluralFunction]",  PluralPar
 
 
 
+// For some reason, "g++ -D_GLIBCXX_DEBUG" causes some errors in BENCHMARK()...
+#ifdef ENABLE_BENCHMARK
 TEST_CASE( "Plural Function Benchmark", "[!benchmark]" ) {
     const auto numbers = gen_int_vector(10000);
     vector<PluralParser::FunctionType> test_funcs;
     for (auto &info : plural_forms) {
         auto it = PluralParser::Parse(info);
-        test_funcs.push_back(it.second);
+        test_funcs.push_back(it);
     }
 
     BENCHMARK( STR(PE00) ) {
@@ -518,3 +556,4 @@ TEST_CASE( "Plural Function Benchmark", "[!benchmark]" ) {
         }
     };
 }
+#endif // ENABLE_BENCHMARK
