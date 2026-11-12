@@ -290,7 +290,9 @@ macro(vendored_sdl)
     set(SDL2_FOUND TRUE)
     set(SDL2_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/SDL2/src/SDL2-build/include")
     if(MSVC)
-      set(SDL2_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/SDL2/src/SDL2-build/$<CONFIGURATION>/SDL2$<$<CONFIG:Debug>:d>.lib")
+      # SDL names its static library SDL2-static on MSVC, so it cannot be
+      # mistaken for the import library of the shared build.
+      set(SDL2_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/SDL2/src/SDL2-build/$<CONFIGURATION>/SDL2-static$<$<CONFIG:Debug>:d>.lib")
       set(SDL2main_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/SDL2/src/SDL2-build/$<CONFIGURATION>/SDL2main$<$<CONFIG:Debug>:d>.lib")
     else()
       set(SDL2_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/SDL2/src/SDL2-build/libSDL2.a")
