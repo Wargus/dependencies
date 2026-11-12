@@ -228,7 +228,9 @@ macro(vendored_jpeg)
     set(JPEG_FOUND TRUE)
     set(JPEG_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/jpeg/src/jpeg-build/")
     if(MSVC)
-      set(JPEG_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/jpeg/src/jpeg-build/$<CONFIGURATION>/libjpeg.lib")
+      # The libjpeg that SDL2_image vendors is libjpeg-turbo, whose target is
+      # called jpeg, so the MSVC library is jpeg.lib rather than libjpeg.lib.
+      set(JPEG_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/jpeg/src/jpeg-build/$<CONFIGURATION>/jpeg.lib")
     else()
       set(JPEG_LIBRARIES "${CMAKE_CURRENT_BINARY_DIR}/jpeg/src/jpeg-build/libjpeg.a")
     endif()
